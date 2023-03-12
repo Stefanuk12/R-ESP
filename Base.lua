@@ -1,8 +1,15 @@
+--[[
+    Information:
+    Contains the classes needed for the ESP. Additional logic is needed to make it functional
+
+    Note:
+    - This only works for Synapse V3, I may make a v2 -> v3 converter in the future
+]]
+
 -- // Services
 local Workspace = game:GetService("Workspace")
 
 -- // Vars
-local IsSynapseV3 = PolyLineDynamic ~= nil
 local ZeroVector3 = Vector3.zero
 local ZeroVector2 = Vector2.zero
 local Vertices = {
@@ -153,6 +160,12 @@ do
     function Utilities.SetDrawingProperties(Object, Properties)
         -- // Set properties
         for Property, Value in pairs(Properties) do
+            -- // Ignore if property is type
+            if (Property == "Type") then
+                continue
+            end
+
+            -- // Set
             Object[Property] = Value
         end
 
@@ -160,43 +173,128 @@ do
         return Object
     end
 
+
     -- // Creates a new drawing object
     function Utilities.CreateDrawing(Type, Properties)
         -- // Create the object
-        local Object = IsSynapseV3 and getgenv()[Type].new() or Drawing.new(Type)
+        local Object = getgenv()[Type].new()
 
         -- // Return
         return Utilities.SetDrawingProperties(Object, Properties)
     end
 end
 
+-- // Base class. This is an abstract class used to build the rest, make sure to duplicate the constructor, update method, and others
+local Base = {}
+Base.__index = Base
+Base.__type = "Base"
+do
+    -- // Constructor
+    function Base.new(Data, Properties)
+        -- // Create the object
+        local self = setmetatable({}, Base)
+
+        -- // Vars
+        self.Objects = self:InitialiseObjects(Data, Properties)
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Initialises the objects by using the properties
+    function Base.InitialiseObjects(self, Data, Properties)
+        -- // Vars
+        local Objects = {}
+
+        -- // Loop through the properties
+        for i, Property in pairs(Properties) do
+            -- // Check if table
+            if (typeof(Property) == "table") then
+                Objects[i] = self:InitialiseObjects(Data, Property)
+                continue
+            end
+
+            -- // Create the object and add it
+            Objects[i] = Utilities.CreateDrawing(Property.Type, Property)
+        end
+
+        -- // Return
+        return Objects
+    end
+
+    -- // Destroys all of the objects
+    function Base.Destroy(self, TableObject)
+        -- // Default
+        TableObject = TableObject or self.Objects
+
+        -- // Loop through
+        for i, Object in pairs(TableObject) do
+            -- // Check if is a table
+            if (typeof(Object) == "table") then
+                self:Destroy(Object)
+                continue
+            end
+
+            -- // Destroy
+            Object:Remove()
+            TableObject[i] = nil
+        end
+    end
+
+    -- // Updates the properties of properties (assumes only main and outline)
+    function Base.Update(self, Corners)
+        -- // Check for visibility
+        local IsVisible = self.Data.Enabled and Corners.Corners[1].Z < 0
+
+        -- // Vars
+        local MainData = {self.AdditionalData.ColorOpacity(self)}
+        local OutlineData = {self.AdditionalData.ColorOpacityOutline(self)}
+
+        -- // Set the properties
+        Utilities.SetDrawingProperties(self.ObjectsMain, {
+            Color = MainData[1],
+            Opacity = MainData[2],
+            Visible = IsVisible
+        })
+
+        -- // Set properties
+        Utilities.SetDrawingProperties(self.ObjectsMain, {
+            Color = OutlineData[1],
+            Opacity = OutlineData[2],
+            Visible = IsVisible and self.Data.OutlineEnabled
+        })
+    end
+end
+
 -- // Box (Square) Class
 local BoxSquare = {}
+BoxSquare.__index = BoxSquare
+BoxSquare.__type = "BoxSquare"
+setmetatable(BoxSquare, Base)
 do
     -- // Initialise box data
-    BoxSquare.__index = BoxSquare
-    BoxSquare.__type = "Box"
-
     BoxSquare.DefaultData = {
         Enabled = true,
         OutlineEnabled = true
     }
     BoxSquare.DefaultProperties = {
         Main = {
+            Type = "RectDynamic",
             Thickness = 1,
-            Visible = false
-        },
-        Outline = {
-            Thickness = 3,
-            Visible = false
+
+            Outlined = true,
+            OutlineOpacity = 1,
+            OutlineThickness = 3,
+
+            Visible = false,
         }
     }
     BoxSquare.AdditionalData = {
-        ColorTransparency = function(self)
+        ColorOpacity = function(self)
             return Color3.new(1, 0, 0), 1
         end,
 
-        ColorTransparencyOutline = function(self)
+        ColorOpacityOutline = function(self)
             return Color3.new(0, 0, 0), 1
         end,
     }
@@ -215,36 +313,22 @@ do
 
         -- // Combine the properties and make the object(s)
         local DefaultProperties = BoxSquare.DefaultProperties
-        self.Objects = {
-            Main = Utilities.CreateDrawing("Square", Utilities.CombineTables(DefaultProperties.Main, Properties.Main)),
-            Outline = Utilities.CreateDrawing("Square", Utilities.CombineTables(DefaultProperties.Outline, Properties.Outline))
-        }
+        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
 
         -- // Return the object
         return self
     end
 
-    -- // Destroys all of the objects
-    function BoxSquare.Destroy(self)
-        -- // Loop through all objects
-        for i = #self.Objects, 1, -1 do
-            -- // Remove the object and from the table
-            self.Objects[i]:Remove()
-            table.remove(self.Objects, i)
-        end
-    end
-
     -- // Updates the properties
     function BoxSquare.Update(self, Corners)
         -- // Check for visibility
-        local BoxVisible = self.Data.Enabled and Corners.Corners[1].Z < 0
-        if (not BoxVisible) then
-            return
-        end
+        local Data = self.Data
+        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
-        local MainData = {self.AdditionalData.ColorTransparency(self)}
-        local OutlineData = {self.AdditionalData.ColorTransparencyOutline(self)}
+        local MainData = {self.AdditionalData.ColorOpacity(self)}
+        local OutlineData = {self.AdditionalData.ColorOpacityOutline(self)}
 
         local BoxPosition = Corners.TopLeft
         local BoxSize = Corners.BottomRight - Corners.TopLeft
@@ -253,26 +337,110 @@ do
         Utilities.SetDrawingProperties(self.ObjectsMain, {
             Position = BoxPosition,
             Size = BoxSize,
+
             Color = MainData[1],
-            Transparency = MainData[2]
+            Opacity = MainData[2],
+
+            Outlined = OutlineVisible,
+            OutlineColor = OutlineData[1],
+            OutlineOpacity = OutlineData[2],
+
+            Visible = IsVisible
         })
+    end
+end
 
-        -- // Make sure outline enabled
-        if (not self.Data.OutlineEnabled) then
-            return
-        end
+-- // Tracer Class
+local Tracer = {}
+Tracer.__index = Tracer
+Tracer.__type = "Tracer"
+setmetatable(Tracer, Base)
+do
+    -- // Initialise box data
+    Tracer.Tracer = {
+        Enabled = true,
+        OutlineEnabled = true
+    }
+    Tracer.DefaultProperties = {
+        Main = {
+            Type = "LineDynamic",
+            Thickness = 1,
 
-        -- // Set properties
+            Outlined = true,
+            OutlineOpacity = 1,
+            OutlineThickness = 3,
+
+            Visible = false,
+        }
+    }
+    Tracer.AdditionalData = {
+        ColorOpacity = function(self)
+            return Color3.new(1, 0, 0), 1
+        end,
+
+        ColorOpacityOutline = function(self)
+            return Color3.new(0, 0, 0), 1
+        end,
+    }
+
+    -- // Constructor
+    function Tracer.new(Data, Properties)
+        -- // Default values
+        Data = Data or Tracer.DefaultData
+        Properties = Properties or Tracer.DefaultProperties
+
+        -- // Create the object
+        local self = setmetatable({}, Tracer)
+
+        -- // Vars
+        self.Data = Data
+
+        -- // Combine the properties and make the object(s)
+        local DefaultProperties = Tracer.DefaultProperties
+        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Updates the properties
+    function Tracer.Update(self, Corners)
+        -- // Check for visibility
+        local Data = self.Data
+        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local OutlineVisible = IsVisible and Data.OutlineEnabled
+
+        -- // Vars
+        local MainData = {self.AdditionalData.ColorOpacity(self)}
+        local OutlineData = {self.AdditionalData.ColorOpacityOutline(self)}
+
+        local ViewportSize = Utilities.GetCurrentCamera().ViewportSize
+        local To = (Corners.BottomLeft + Corners.BottomRight) / 2
+        local From =
+            Data.TracerOrigin == "Middle" and ViewportSize / 2 or
+            Data.TracerOrigin == "Top" and ViewportSize * Vector2.new(0.5, 0) or
+            Data.TracerOrigin == "Bottom" and ViewportSize * Vector2.new(0.5, 1)
+
+        -- // Set the properties
         Utilities.SetDrawingProperties(self.ObjectsMain, {
-            Position = BoxPosition,
-            Size = BoxSize,
-            Color = OutlineData[1],
-            Transparency = OutlineData[2]
+            To = To,
+            From = From,
+
+            Color = MainData[1],
+            Opacity = MainData[2],
+
+            Outlined = OutlineVisible,
+            OutlineColor = OutlineData[1],
+            OutlineOpacity = OutlineData[2],
+
+            Visible = IsVisible
         })
     end
 end
 
 -- // Return
 return {
-    BoxSquare = BoxSquare
+    Base = Base,
+    BoxSquare = BoxSquare,
+    Tracer = Tracer
 }
