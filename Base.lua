@@ -294,6 +294,7 @@ do
             Visible = false,
         }
     }
+
     -- // Constructor
     function BoxSquare.new(Data, Properties)
         -- // Default values
