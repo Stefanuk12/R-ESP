@@ -157,11 +157,12 @@ do
     end
 
     -- // Sets a drawing object's properties
+    Utilities.IgnoredDrawingProperties = {"Type", "SubType"}
     function Utilities.SetDrawingProperties(Object, Properties)
         -- // Set properties
         for Property, Value in pairs(Properties) do
             -- // Ignore if property is type
-            if (Property == "Type") then
+            if (table.find(Utilities.IgnoredDrawingProperties, Property)) then
                 continue
             end
 
@@ -283,22 +284,16 @@ do
             Thickness = 1,
 
             Outlined = true,
+            OutlineColour = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
             OutlineThickness = 3,
+
+            MainColour = Color3.new(1, 0, 0),
+            MainOpacity = 1,
 
             Visible = false,
         }
     }
-    BoxSquare.AdditionalData = {
-        ColorOpacity = function(self)
-            return Color3.new(1, 0, 0), 1
-        end,
-
-        ColorOpacityOutline = function(self)
-            return Color3.new(0, 0, 0), 1
-        end,
-    }
-
     -- // Constructor
     function BoxSquare.new(Data, Properties)
         -- // Default values
@@ -327,9 +322,6 @@ do
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
-        local MainData = {self.AdditionalData.ColorOpacity(self)}
-        local OutlineData = {self.AdditionalData.ColorOpacityOutline(self)}
-
         local BoxPosition = Corners.TopLeft
         local BoxSize = Corners.BottomRight - Corners.TopLeft
 
@@ -338,12 +330,12 @@ do
             Position = BoxPosition,
             Size = BoxSize,
 
-            Color = MainData[1],
-            Opacity = MainData[2],
+            Color = Data.MainColour,
+            Opacity = Data.MainOpacity,
 
             Outlined = OutlineVisible,
-            OutlineColor = OutlineData[1],
-            OutlineOpacity = OutlineData[2],
+            OutlineColor = Data.OutlineColour,
+            OutlineOpacity = Data.OutlineOpacity,
 
             Visible = IsVisible
         })
@@ -357,7 +349,7 @@ Tracer.__type = "Tracer"
 setmetatable(Tracer, Base)
 do
     -- // Initialise box data
-    Tracer.Tracer = {
+    Tracer.DefaultData = {
         Enabled = true,
         OutlineEnabled = true
     }
@@ -367,20 +359,15 @@ do
             Thickness = 1,
 
             Outlined = true,
+            OutlineColour = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
             OutlineThickness = 3,
 
+            MainColour = Color3.new(1, 0, 0),
+            MainOpacity = 1,
+
             Visible = false,
         }
-    }
-    Tracer.AdditionalData = {
-        ColorOpacity = function(self)
-            return Color3.new(1, 0, 0), 1
-        end,
-
-        ColorOpacityOutline = function(self)
-            return Color3.new(0, 0, 0), 1
-        end,
     }
 
     -- // Constructor
@@ -411,9 +398,6 @@ do
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
-        local MainData = {self.AdditionalData.ColorOpacity(self)}
-        local OutlineData = {self.AdditionalData.ColorOpacityOutline(self)}
-
         local ViewportSize = Utilities.GetCurrentCamera().ViewportSize
         local To = (Corners.BottomLeft + Corners.BottomRight) / 2
         local From =
@@ -426,21 +410,144 @@ do
             To = To,
             From = From,
 
-            Color = MainData[1],
-            Opacity = MainData[2],
+            Color = Data.MainColour,
+            Opacity = Data.MainOpacity,
 
             Outlined = OutlineVisible,
-            OutlineColor = OutlineData[1],
-            OutlineOpacity = OutlineData[2],
+            OutlineColor = Data.OutlineColour,
+            OutlineOpacity = Data.OutlineOpacity,
 
             Visible = IsVisible
         })
     end
 end
 
+-- // Header (name) Class
+local Header = {}
+Header.__index = Header
+Header.__type = "Header"
+setmetatable(Header, Base)
+do
+    -- // Initialise box data
+    Header.DefaultData = {
+        Enabled = true,
+        OutlineEnabled = true,
+
+        Type = "Name", -- // Options: Name, Distance, Weapon
+        Value = "N/A", -- // Name -> "PLAYERNAME", Distance -> 12.0, Weapon -> "AK-47"
+        Font = 2,
+        Size = 13,
+
+        MainColour = Color3.new(1, 0, 0),
+        MainOpacity = 1,
+
+        OutlineColour = Color3.new(0, 0, 0),
+        OutlineOpacity = 1,
+
+        Formats = {
+            Name = "%s",
+            Distance = "%f studs"
+        },
+
+        --[[
+            Below can be a function to return a dynamic offset. For example, if you have a Weapon and Distance header this helps avoid clashes:
+
+            PSEUDOCODE
+            function (self)
+                local Base = Vector2.new(0, 2)
+                if (not DistanceObject.Visible) then
+                    return Base
+                end
+
+                return (Base + DistanceObject.TextBounds) * Vector2.yAxis
+            end
+        ]]
+        Offset = Vector2.new(0, 2)
+    }
+    Header.DefaultProperties = {
+        Main = {
+            Type = "TextDynamic",
+
+            Visible = false,
+        }
+    }
+
+    -- // Constructor
+    function Header.new(Data, Properties)
+        -- // Default values
+        Data = Data or Header.DefaultData
+        Properties = Properties or Header.DefaultProperties
+
+        -- // Create the object
+        local self = setmetatable({}, Header)
+
+        -- // Vars
+        self.Data = Data
+
+        -- // Combine the properties and make the object(s)
+        local DefaultProperties = Header.DefaultProperties
+        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Calculates the position
+    function Header.GetPosition(self, Corners)
+        -- // Vars
+        local Data = self.Data
+        local Type = Data.Type
+        local MainObject = self.Objects.Main
+
+        -- // Grab the offset
+        local Offset = typeof(Data.Offset) == "function" and Data.Offset(self) or Data.Offset
+
+        -- // Name
+        if (Type == "Name") then
+            return ((Corners.TopLeft + Corners.TopRight) / 2) - (MainObject.TextBounds * Vector2.yAxis) - Offset
+        end
+
+        -- // Distance
+        if (Type == "Distance" or Type == "Weapon") then
+            return ((Corners.BottomLeft + Corners.BottomRight) / 2) + Offset
+        end
+
+        -- // Default
+        return Vector2.zero
+    end
+
+    -- // Updates the properties
+    function Header.Update(self, Corners)
+        -- // Check for visibility
+        local Data = self.Data
+        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local OutlineVisible = IsVisible and Data.OutlineEnabled
+
+        -- // Set the properties
+        Utilities.SetDrawingProperties(self.Objects.Main, {
+            Position = self:GetPosition(),
+            Text = Data.Formats[Data.Type]:format(Data.Value),
+
+            Font = Data.Font,
+            Size = Data.Size,
+
+            Color = Data.MainColour,
+            Opacity = Data.MainOpacity,
+
+            Outlined = OutlineVisible,
+            OutlineColor = Data.OutlineColour,
+            OutlineOpacity = Data.OutlineOpacity,
+
+            Visible = IsVisible
+        })
+    end
+end
+
+
 -- // Return
 return {
     Base = Base,
     BoxSquare = BoxSquare,
-    Tracer = Tracer
+    Tracer = Tracer,
+    Header = Header
 }
