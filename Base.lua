@@ -547,6 +547,7 @@ end
 
 -- // Return
 return {
+    Utilities = Utilities,
     Base = Base,
     BoxSquare = BoxSquare,
     Tracer = Tracer,
