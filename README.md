@@ -19,7 +19,7 @@ These are all of the features...
   - [x] Distance
   - [x] Name
   - [x] Weapon
-- [ ] Healthbar
+- [x] Healthbar
 - [ ] Out of view Arrows
 
 ## Manager

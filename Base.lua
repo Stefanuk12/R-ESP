@@ -23,6 +23,79 @@ local Vertices = {
 	Vector3.new( 1, -1,  1)
 }
 
+-- // CIELUV - https://gist.github.com/Fraktality/8a833e3bea7471a05e388062efaf9886
+local CIELUV = {}
+do
+    -- Combines two colors in CIELUV space.
+	-- function<function<Color3 result>(float t)>(Color3 fromColor, Color3 toColor)
+
+	-- https://www.w3.org/Graphics/Color/srgb
+
+	local clamp = math.clamp
+	local C3 = Color3.new
+	local black = C3(0, 0, 0)
+
+	-- Convert from linear RGB to scaled CIELUV
+
+    function CIELUV.RgbToLuv13(c)
+        local r, g, b = c.r, c.g, c.b
+        -- Apply inverse gamma correction
+		r = r < 0.0404482362771076 and r/12.92 or 0.87941546140213*(r + 0.055)^2.4
+		g = g < 0.0404482362771076 and g/12.92 or 0.87941546140213*(g + 0.055)^2.4
+		b = b < 0.0404482362771076 and b/12.92 or 0.87941546140213*(b + 0.055)^2.4
+		-- sRGB->XYZ->CIELUV
+		local y = 0.2125862307855956*r + 0.71517030370341085*g + 0.0722004986433362*b
+		local z = 3.6590806972265883*r + 11.4426895800574232*g + 4.1149915024264843*b
+		local l = y > 0.008856451679035631 and 116*y^(1/3) - 16 or 903.296296296296*y
+		if z > 1e-15 then
+			local x = 0.9257063972951867*r - 0.8333736323779866*g - 0.09209820666085898*b
+			return l, l*x/z, l*(9*y/z - 0.46832)
+		else
+			return l, -0.19783*l, -0.46832*l
+		end
+    end
+
+    function CIELUV.Lerp(t, c0, c1)
+		local l0, u0, v0 = CIELUV.RgbToLuv13(c0)
+		local l1, u1, v1 = CIELUV.RgbToLuv13(c1)
+
+        -- Interpolate
+        local l = (1 - t)*l0 + t*l1
+        if l < 0.0197955 then
+            return black
+        end
+        local u = ((1 - t)*u0 + t*u1)/l + 0.19783
+        local v = ((1 - t)*v0 + t*v1)/l + 0.46832
+
+        -- CIELUV->XYZ
+        local y = (l + 16)/116
+        y = y > 0.206896551724137931 and y*y*y or 0.12841854934601665*y - 0.01771290335807126
+        local x = y*u/v
+        local z = y*((3 - 0.75*u)/v - 5)
+
+        -- XYZ->linear sRGB
+        local r =  7.2914074*x - 1.5372080*y - 0.4986286*z
+        local g = -2.1800940*x + 1.8757561*y + 0.0415175*z
+        local b =  0.1253477*x - 0.2040211*y + 1.0569959*z
+
+        -- Adjust for the lowest out-of-bounds component
+        if r < 0 and r < g and r < b then
+            r, g, b = 0, g - r, b - r
+        elseif g < 0 and g < b then
+            r, g, b = r - g, 0, b - g
+        elseif b < 0 then
+            r, g, b = r - b, g - b, 0
+        end
+
+        return C3(
+            -- Apply gamma correction and clamp the result
+            clamp(r < 3.1306684425e-3 and 12.92*r or 1.055*r^(1/2.4) - 0.055, 0, 1),
+            clamp(g < 3.1306684425e-3 and 12.92*g or 1.055*g^(1/2.4) - 0.055, 0, 1),
+            clamp(b < 3.1306684425e-3 and 12.92*b or 1.055*b^(1/2.4) - 0.055, 0, 1)
+        )
+	end
+end
+
 -- // Utilities
 local Utilities = {}
 do
@@ -62,6 +135,26 @@ do
 
         -- // Return
         return Base
+    end
+
+    -- // Deep copying
+    function Utilities.DeepCopy(Original)
+        -- // Vars
+        local Copy = {}
+
+        -- // Loop through original
+        for i, v in pairs(Original) do
+            -- // Recursion if table
+            if (typeof(v) == "table") then
+                v = Utilities.DeepCopy(v)
+            end
+
+            -- // Set
+            Copy[i] = v
+        end
+
+        -- // Return the copy
+        return Copy
     end
 end
 
@@ -203,7 +296,7 @@ do
     end
 
     -- // Initialises the objects by using the properties
-    function Base.InitialiseObjects(self, Data, Properties)
+    function Base:InitialiseObjects(Data, Properties)
         -- // Vars
         local Objects = {}
 
@@ -224,7 +317,7 @@ do
     end
 
     -- // Destroys all of the objects
-    function Base.Destroy(self, TableObject)
+    function Base:Destroy(TableObject)
         -- // Default
         TableObject = TableObject or self.Objects
 
@@ -243,7 +336,7 @@ do
     end
 
     -- // Updates the properties of properties (assumes only main and outline)
-    function Base.Update(self, Corners)
+    function Base:Update(Corners)
         -- // Check for visibility
         local IsVisible = self.Data.Enabled and Corners.Corners[1].Z < 0
 
@@ -252,14 +345,14 @@ do
         local OutlineData = {self.AdditionalData.ColorOpacityOutline(self)}
 
         -- // Set the properties
-        Utilities.SetDrawingProperties(self.ObjectsMain, {
+        Utilities.SetDrawingProperties(self.Objects.Main, {
             Color = MainData[1],
             Opacity = MainData[2],
             Visible = IsVisible
         })
 
         -- // Set properties
-        Utilities.SetDrawingProperties(self.ObjectsMain, {
+        Utilities.SetDrawingProperties(self.Objects.Main, {
             Color = OutlineData[1],
             Opacity = OutlineData[2],
             Visible = IsVisible and self.Data.OutlineEnabled
@@ -283,13 +376,13 @@ do
             Type = "RectDynamic",
             Thickness = 1,
 
+            Color = Color3.new(1, 0, 0),
+            Opacity = 1,
+
             Outlined = true,
-            OutlineColour = Color3.new(0, 0, 0),
+            OutlineColor = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
             OutlineThickness = 3,
-
-            MainColour = Color3.new(1, 0, 0),
-            MainOpacity = 1,
 
             Visible = false,
         }
@@ -316,9 +409,10 @@ do
     end
 
     -- // Updates the properties
-    function BoxSquare.Update(self, Corners)
+    function BoxSquare:Update(Corners)
         -- // Check for visibility
         local Data = self.Data
+        local Properties = Utilities.DeepCopy(self.Properties)
         local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
@@ -327,19 +421,13 @@ do
         local BoxSize = Corners.BottomRight - Corners.TopLeft
 
         -- // Set the properties
-        Utilities.SetDrawingProperties(self.ObjectsMain, {
+        Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
             Position = BoxPosition,
             Size = BoxSize,
 
-            Color = Data.MainColour,
-            Opacity = Data.MainOpacity,
-
             Outlined = OutlineVisible,
-            OutlineColor = Data.OutlineColour,
-            OutlineOpacity = Data.OutlineOpacity,
-
             Visible = IsVisible
-        })
+        }))
     end
 end
 
@@ -359,13 +447,13 @@ do
             Type = "LineDynamic",
             Thickness = 1,
 
+            Color = Color3.new(1, 0, 0),
+            Opacity = 1,
+
             Outlined = true,
-            OutlineColour = Color3.new(0, 0, 0),
+            OutlineColor = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
             OutlineThickness = 3,
-
-            MainColour = Color3.new(1, 0, 0),
-            MainOpacity = 1,
 
             Visible = false,
         }
@@ -392,9 +480,10 @@ do
     end
 
     -- // Updates the properties
-    function Tracer.Update(self, Corners)
+    function Tracer:Update(Corners)
         -- // Check for visibility
         local Data = self.Data
+        local Properties = Utilities.DeepCopy(self.Properties)
         local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
@@ -407,19 +496,13 @@ do
             Data.TracerOrigin == "Bottom" and ViewportSize * Vector2.new(0.5, 1)
 
         -- // Set the properties
-        Utilities.SetDrawingProperties(self.ObjectsMain, {
+        Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
             To = To,
             From = From,
 
-            Color = Data.MainColour,
-            Opacity = Data.MainOpacity,
-
             Outlined = OutlineVisible,
-            OutlineColor = Data.OutlineColour,
-            OutlineOpacity = Data.OutlineOpacity,
-
             Visible = IsVisible
-        })
+        }))
     end
 end
 
@@ -436,14 +519,6 @@ do
 
         Type = "Name", -- // Options: Name, Distance, Weapon
         Value = "N/A", -- // Name -> "PLAYERNAME", Distance -> 12.0, Weapon -> "AK-47"
-        Font = 2,
-        Size = 13,
-
-        MainColour = Color3.new(1, 0, 0),
-        MainOpacity = 1,
-
-        OutlineColour = Color3.new(0, 0, 0),
-        OutlineOpacity = 1,
 
         Formats = {
             Name = "%s",
@@ -468,6 +543,15 @@ do
     Header.DefaultProperties = {
         Main = {
             Type = "TextDynamic",
+
+            Font = 2,
+            Size = 13,
+
+            Color = Color3.new(1, 0, 0),
+            Opacity = 1,
+
+            OutlineColor = Color3.new(0, 0, 0),
+            OutlineOpacity = 1,
 
             Visible = false,
         }
@@ -494,7 +578,7 @@ do
     end
 
     -- // Calculates the position
-    function Header.GetPosition(self, Corners)
+    function Header:GetPosition(Corners)
         -- // Vars
         local Data = self.Data
         local Type = Data.Type
@@ -518,32 +602,132 @@ do
     end
 
     -- // Updates the properties
-    function Header.Update(self, Corners)
+    function Header:Update(Corners)
         -- // Check for visibility
         local Data = self.Data
+        local Properties = Utilities.DeepCopy(self.Properties)
         local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Set the properties
-        Utilities.SetDrawingProperties(self.Objects.Main, {
+        Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
             Position = self:GetPosition(),
             Text = Data.Formats[Data.Type]:format(Data.Value),
 
-            Font = Data.Font,
-            Size = Data.Size,
-
-            Color = Data.MainColour,
-            Opacity = Data.MainOpacity,
-
             Outlined = OutlineVisible,
-            OutlineColor = Data.OutlineColour,
-            OutlineOpacity = Data.OutlineOpacity,
-
             Visible = IsVisible
-        })
+        }))
     end
 end
 
+-- // Healthbar Class
+local Healthbar = {}
+Healthbar.__index = Healthbar
+Healthbar.__type = "Healthbar"
+setmetatable(Healthbar, Base)
+do
+    -- // Initialise box data
+    Healthbar.DefaultData = {
+        Enabled = true,
+        OutlineEnabled = true,
+
+        Value = 0, -- // Current Health
+        MaxValue = 100, -- // Maximum Health
+
+        MinColour = Color3.new(1, 0, 0),
+        MaxColour = Color3.new(0, 1, 0),
+
+        Offset = Vector2.new(0, 2)
+    }
+    Healthbar.DefaultProperties = {
+        Main = {
+            Type = "LineDynamic",
+
+            Thickness = 1,
+
+            Color = Color3.new(1, 0, 0),
+            Opacity = 1,
+
+            Outlined = true,
+            OutlineColor = Color3.new(0, 0, 0),
+            OutlineOpacity = 1,
+            OutlineThickness = 3,
+
+            Visible = false,
+        },
+        Text = {
+            Type = "TextDynamic",
+
+            Font = 2,
+            Size = 13,
+
+            Color = Color3.new(1, 0, 0),
+            Opacity = 1,
+
+            OutlineColor = Color3.new(0, 0, 0),
+            OutlineOpacity = 1,
+
+            Visible = false
+        }
+    }
+
+    -- // Constructor
+    function Healthbar.new(Data, Properties)
+        -- // Default values
+        Data = Data or Healthbar.DefaultData
+        Properties = Properties or Healthbar.DefaultProperties
+
+        -- // Create the object
+        local self = setmetatable({}, Healthbar)
+
+        -- // Vars
+        self.Data = Data
+
+        -- // Combine the properties and make the object(s)
+        local DefaultProperties = Healthbar.DefaultProperties
+        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Updates the properties
+    function Healthbar:Update(Corners)
+        -- // Check for visibility
+        local Data = self.Data
+        local Properties = Utilities.DeepCopy(self.Properties)
+        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local OutlineVisible = IsVisible and Data.OutlineEnabled
+
+        -- // Vars
+        local To = Corners.BottomLeft - Data.Offset
+        local From = Corners.TopLeft - Data.Offset
+
+        local ValueRatio = Data.Value / Data.MaxValue
+        local LerpFrom = To:Lerp(From, ValueRatio)
+        local LerpedColour = CIELUV.Lerp(ValueRatio, Data.MinColour, Data.MaxColour)
+
+        -- // Set the properties
+        Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
+            To = To,
+            From = LerpFrom,
+
+            Color = LerpedColour,
+
+            Outlined = OutlineVisible,
+            Visible = IsVisible
+        }))
+
+        local TextObject = self.Objects.Text
+        Utilities.SetDrawingProperties(TextObject, Utilities.CombineTables(Properties.Text, {
+            Text = math.round(Data.Value) .. "HP",
+            Position = From - Data.Offset - TextObject.TextBounds / 2,
+
+            Outlined = OutlineVisible,
+            Visible = IsVisible
+        }))
+    end
+end
 
 -- // Return
 return {
@@ -551,5 +735,6 @@ return {
     Base = Base,
     BoxSquare = BoxSquare,
     Tracer = Tracer,
-    Header = Header
+    Header = Header,
+    Healthbar = Healthbar
 }
