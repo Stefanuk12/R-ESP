@@ -729,6 +729,107 @@ do
     end
 end
 
+-- // OffArrow Class
+local OffArrow = {}
+OffArrow.__index = OffArrow
+OffArrow.__type = "OffArrow"
+setmetatable(OffArrow, Base)
+do
+    -- // Initialise box data
+    OffArrow.DefaultData = {
+        Enabled = true,
+        OutlineEnabled = true,
+
+        Value = Vector2.zero, -- // direction -> Vector2.new(math.cos(Angle), math.sin(Angle))
+        Radius = 5,
+
+        Offset = Vector2.new(0, 2)
+    }
+    OffArrow.DefaultProperties = {
+        Main = {
+            Type = "PolyLineDynamic",
+
+            Thickness = 1,
+
+            FillType = PolyLineFillType.Closed,
+
+            Color = Color3.new(1, 0, 0),
+            Opacity = 1,
+
+            Outlined = true,
+            OutlineColor = Color3.new(0, 0, 0),
+            OutlineOpacity = 1,
+            OutlineThickness = 3,
+
+            Visible = false,
+        }
+    }
+
+    -- // Constructor
+    function OffArrow.new(Data, Properties)
+        -- // Default values
+        Data = Data or OffArrow.DefaultData
+        Properties = Properties or OffArrow.DefaultProperties
+
+        -- // Create the object
+        local self = setmetatable({}, OffArrow)
+
+        -- // Vars
+        self.Data = Data
+
+        -- // Combine the properties and make the object(s)
+        local DefaultProperties = OffArrow.DefaultProperties
+        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Calulcates direction
+    function OffArrow:Direction(Origin, Destination)
+        -- // Maths in order to get the angle
+        local _, Yaw, Roll = Origin:ToOrientation()
+        local FlatCFrame = CFrame.Angles(0, Yaw, Roll) + Origin.Position
+        local ObjectSpace = FlatCFrame:PointToObjectSpace(Destination)
+        local Angle = math.atan2(ObjectSpace.Z, ObjectSpace.X)
+
+        -- // Return the direction
+        return Vector2.new(math.cos(Angle), math.sin(Angle))
+    end
+
+    -- // Updates the properties
+    function OffArrow:Update(Corners)
+        -- // Check for visibility
+        local Data = self.Data
+        local Properties = Utilities.DeepCopy(self.Properties)
+        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local OutlineVisible = IsVisible and Data.OutlineEnabled
+
+        -- // Vars
+        local ViewportSize = Utilities.GetCurrentCamera().ViewportSize
+        local Vector25 = Vector2.one * 25
+
+        local Value = Data.Value
+        local Radius = Data.Radius
+
+        local PointA = (ViewportSize / 2 + Value * Radius):Max(Vector25):Min(ViewportSize - Vector25)
+        local PointB = PointA - Utilities.RotateVector2(Value, 0.45) * Radius
+        local PointC = PointA - Utilities.RotateVector2(Value, -0.45) * Radius
+
+        -- // Set the properties
+        Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
+            Points = {
+                PointA,
+                PointB,
+                PointC
+            },
+
+            Outlined = OutlineVisible,
+            Visible = IsVisible
+        }))
+    end
+end
+
 -- // Return
 return {
     Utilities = Utilities,
@@ -736,5 +837,6 @@ return {
     BoxSquare = BoxSquare,
     Tracer = Tracer,
     Header = Header,
-    Healthbar = Healthbar
+    Healthbar = Healthbar,
+    OffArrow = OffArrow
 }
