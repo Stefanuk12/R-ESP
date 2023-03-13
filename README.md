@@ -1,6 +1,6 @@
 # R-ESP
 
-An ESP library heavily inspired by [sense](https://github.com/shlexware/Sirius/blob/request/library/sense/source.lua).
+An ESP library heavily inspired by [sense]()
 
 ```diff 
 - For Synapse V3 only (unless a wrapper is written for V2)
@@ -34,35 +34,57 @@ This library uses OOP heavily. The base contains the objects you might need, the
 
 I'm not really bothered to write the entirety of the documentation for the base since most of it is self-documented within the code itself. Instead, I'll provide links to each function and such.
 
+```diff
+! Note that if you want to change certain Drawing properties, you can do this via changing the class' Properties variable (example below). It may be overwritten though. 
+```
+
+```lua
+local Box = BoxSquare.new()
+Box.Properties.Filled = true
+```
+
 ### Base
 
-[Base.Destroy(self: Base, TableObject: self.Objects?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L226-L243)
+[Base:Destroy(TableObject: self.Objects?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L319-L336)
 
 ### BoxSquare
-[BoxSquare.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L277-L280)
 
-[BoxSquare.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L281-L296)
+[BoxSquare.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L370-L373)
 
-[BoxSquare.new(Data: BoxSquare.DefaultData?, Properties: BoxSquare.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L298-L316)
+[BoxSquare.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L374-L389)
 
-[BoxSquare.Update(self: BoxSquare, Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L318-L343)
+[BoxSquare.new(Data: BoxSquare.DefaultData?, Properties: BoxSquare.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L391-L409)
+
+[BoxSquare:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L411-L431)
 
 ### Tracer
-[Tracer.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L353-L356)
 
-[Tracer.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L357-L372)
+[Tracer.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L441-L444)
 
-[Tracer.new(Data: Tracer.DefaultData?, Properties: Tracer.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L374-L392)
+[Tracer.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L445-L460)
 
-[Tracer.Update(self: Tracer, Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L394-L423)
+[Tracer.new(Data: Tracer.DefaultData?, Properties: Tracer.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L462-L480)
+
+[Tracer:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L482-L506)
 
 ### Header
-[Header.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L433-L467)
 
-[Header.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L468-L474)
+[Header.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L516-L542)
 
-[Header.new(Data: Header.DefaultData?, Properties: Header.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L476-L494)
+[Header.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L543-L558)
 
-[Header.GetPosition(self: Header, Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L496-L518)
+[Header.new(Data: Header.DefaultData?, Properties: Header.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L560-L578)
 
-[Header.Update(self: Header, Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L520-L544)
+[Header:GetPosition(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L580-L602)
+
+[Header:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L604-L620)
+
+### Healthbar
+
+[Healthbar.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L630-L641)
+
+[Healthbar.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L642-L672)
+
+[Healthbar.new(Data: Healthbar.DefaultData?, Properties: Healthbar.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L674-L692)
+
+[Healthbar:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L694-L729)
