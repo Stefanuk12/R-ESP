@@ -240,52 +240,6 @@ do
     end
 end
 
--- // PlayerObject Class
-local PlayerObject = {}
-PlayerObject.__index = PlayerObject
-PlayerObject.__type = "PlayerObject"
-setmetatable(PlayerObject, InstanceObject)
-do
-    -- // Constructor
-    function PlayerObject.new(Object)
-        -- // Check object type
-        assert(typeof(Object) == "Instance" and Object:IsA("BasePart") or Object:IsA("Model"), "invalid object, must be a BasePart or Model")
-
-        -- // Create the object
-        local self = setmetatable({}, PlayerObject)
-
-        -- // Vars
-        self.Instance = Object
-        self.Objects = {}
-
-        -- // Add it to InstanceObjects
-        table.insert(InstanceObjects, self)
-
-        -- // Return the object
-        return self
-    end
-
-    -- // Renders all objects
-    function PlayerObject:Render()
-        -- // Ensure we have some objects
-        if (#self.Objects == 0) then
-            return false
-        end
-
-        -- // Check
-        local ObjectInstance = self.Instance
-        local PartCFrame, PartSize = getboundingbox({ObjectInstance})
-
-        -- // Get corners
-        local Corners = Base.Utilities.CalculateCorners(PartCFrame, PartSize)
-
-        -- // Update each object
-        for _, Object in ipairs(self.Objects) do
-            Object:Update(Corners)
-        end
-    end
-end
-
 -- // Render loop
 RunService:BindToRenderStep("R-ESP-Render", 0, function(dT)
     -- // Loop through each instance object, then render
@@ -297,6 +251,5 @@ end)
 -- // Return
 return {
     InstanceObject = InstanceObject,
-    PlayerObject = PlayerObject,
     InstanceObjects = InstanceObjects
 }
