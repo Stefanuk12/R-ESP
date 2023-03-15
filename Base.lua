@@ -830,6 +830,82 @@ do
     end
 end
 
+-- // Box 3D Class
+local Box3D = {}
+Box3D.__index = Box3D
+Box3D.__type = "Box3D"
+setmetatable(Box3D, Base)
+do
+    -- // Initialise box data
+    Box3D.DefaultData = {
+        Enabled = true,
+        OutlineEnabled = true,
+    }
+    Box3D.DefaultProperties = table.create(4, { -- // Create each face
+        {
+            Type = "PolyLineDynamic",
+            Thickness = 1,
+
+            Outlined = true,
+            OutlineColor = Color3.new(0, 0, 0),
+            OutlineOpacity = 1,
+            OutlineThickness = 3,
+
+            Visible = false
+        },
+    })
+
+    -- // Constructor
+    function Box3D.new(Data, Properties)
+        -- // Default values
+        Data = Data or Box3D.DefaultData
+        Properties = Properties or Box3D.DefaultProperties
+
+        -- // Create the object
+        local self = setmetatable({}, Box3D)
+
+        -- // Vars
+        self.Data = Data
+
+        -- // Combine the properties and make the object(s)
+        local DefaultProperties = Box3D.DefaultProperties
+        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Updates the properties
+    function Box3D:Update(Corners)
+        -- // Check for visibility
+        local Data = self.Data
+        local Properties = Utilities.DeepCopy(self.Properties)
+        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local OutlineVisible = IsVisible and Data.OutlineEnabled
+
+        -- // Loop through each face
+        local CornersArray = Corners.Corners
+        local PointArray = {1, 5, 4}
+        for i = 1, #Properties do
+            -- // Create the points table
+            local Points = {CornersArray[i]}
+            for j = 1, 2 do
+                local Point = CornersArray[(i % 4) + PointArray[j]]
+                table.insert(Points, Point)
+            end
+            table.insert(CornersArray[i == 4 and 8 or (i + PointArray[3])])
+
+            -- // Set properties
+            Utilities.SetDrawingProperties(self.Objects[i], Utilities.CombineTables(Properties[i], {
+                Points = Points,
+
+                Outlined = OutlineVisible,
+                Visible = IsVisible
+            }))
+        end
+    end
+end
+
 -- // Return
 return {
     Utilities = Utilities,
@@ -838,5 +914,6 @@ return {
     Tracer = Tracer,
     Header = Header,
     Healthbar = Healthbar,
-    OffArrow = OffArrow
+    OffArrow = OffArrow,
+    Box3D = Box3D
 }

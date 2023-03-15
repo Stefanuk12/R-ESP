@@ -13,7 +13,7 @@ These are all of the features...
 
 ## Base
 - [x] Box
-- [ ] Box (3D)
+- [x] Box (3D)
 - [x] Tracer
 - [x] Header
   - [x] Distance
@@ -100,3 +100,13 @@ Box.Properties.Filled = true
 [OffArrow:Direction(Origin: CFrame, Destination: Vector3)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L788-L798)
 
 [OffArrow:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L800-L830)
+
+### Box 3D
+
+[OffArrow.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L840-L843)
+
+[OffArrow.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L844-L856)
+
+[OffArrow.new(Data: Healthbar.DefaultData?, Properties: Healthbar.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L858-L876)
+
+[OffArrow:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L878-L906)
