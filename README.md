@@ -95,7 +95,7 @@ Box.Properties.Filled = true
 
 [OffArrow.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L748-L766)
 
-[OffArrow.new(Data: Healthbar.DefaultData?, Properties: Healthbar.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L768-L786)
+[OffArrow.new(Data: OffArrow.DefaultData?, Properties: OffArrow.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L768-L786)
 
 [OffArrow:Direction(Origin: CFrame, Destination: Vector3)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L788-L798)
 
@@ -103,10 +103,10 @@ Box.Properties.Filled = true
 
 ### Box 3D
 
-[OffArrow.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L840-L843)
+[Box3D.DefaultData](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L840-L843)
 
-[OffArrow.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L844-L856)
+[Box3D.DefaultProperties](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L844-L856)
 
-[OffArrow.new(Data: Healthbar.DefaultData?, Properties: Healthbar.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L858-L876)
+[Box3D.new(Data: Box3D.DefaultData?, Properties: Healthbar.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L858-L876)
 
-[OffArrow:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L878-L906)
+[Box3D:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L878-L906)
