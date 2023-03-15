@@ -158,33 +158,6 @@ do
     end
 end
 
--- // Polyfill for getboundingbox
-local getboundingbox = getboundingbox or function (parts, orientation)
-    -- // Vars
-    local MinPosition
-    local MaxPosition
-
-    -- // Loop through part
-    for _, Part in ipairs(parts) do
-        -- // Part data
-        local PartPosition = Part.CFrame.Position
-        local HalfPartSize = Part.Size / 2
-
-        -- // Set min/max
-        MinPosition = (MinPosition or PartPosition):Min(PartPosition - HalfPartSize)
-        MaxPosition = (MaxPosition or PartPosition):Max(PartPosition + HalfPartSize)
-    end
-
-    -- // Calculate the some things
-    local Center = (MinPosition + MaxPosition) / 2
-    local Front = Vector3.new(Center.X, Center.Y, MaxPosition.Z)
-
-    -- // Return
-    local BoxCFrame = CFrame.new(Center, Front)
-    local BoxSize = MaxPosition - MinPosition
-    return BoxCFrame, BoxSize
-end
-
 -- // Polyfill for worldtoscreen
 local worldtoscreen = worldtoscreen or function (points, offset)
     -- // Vars
@@ -210,30 +183,37 @@ do
         -- // Vars
         local HalfSize = PartSize / 2
         local Corners = table.create(#Vertices)
-    
+
         -- // Calculate each corner
         for i, Vertex in ipairs(Vertices) do
             Corners[i] = PartCFrame + (HalfSize * Vertex)
         end
-    
+
         -- // Convert to screen
-        Corners = worldtoscreen(Corners)
-    
+        local Corners2D = worldtoscreen(Corners)
+
         -- // Get min and max
-        local MinPosition = Utilities.GetCurrentCamera().ViewportSize:Min(unpack(Corners))
-        local MaxPosition = ZeroVector2:Max(unpack(Corners))
-    
-        -- // Return corners
+        local MinPosition = Utilities.GetCurrentCamera().ViewportSize:Min(unpack(Corners2D))
+        local MaxPosition = ZeroVector2:Max(unpack(Corners2D))
+
+        -- // Add data to table
         local mathfloor = math.floor
         local ApplyVector2 = Utilities.ApplyVector2
-        return {
-            Corners = Corners,
-    
+        local Data = {
+            Corners = Corners2D,
+            Centre3D = PartCFrame.Position,
+
             TopLeft = ApplyVector2(MinPosition, mathfloor),
             TopRight = ApplyVector2(Vector2.new(MaxPosition.X, MinPosition.Y), mathfloor),
-            BtoomLeft = ApplyVector2(Vector2.new(MinPosition.X, MaxPosition.Y), mathfloor),
+            BottomLeft = ApplyVector2(Vector2.new(MinPosition.X, MaxPosition.Y), mathfloor),
             BottomRight = ApplyVector2(MaxPosition, mathfloor),
         }
+
+        -- // Get centre
+        Data.Centre = (MinPosition + MaxPosition) / 2
+
+        -- // Return
+        return Data
     end
 
     -- // Rotates a vector2
@@ -241,7 +221,7 @@ do
         -- // Calculate the trig values
         local CosValue = math.cos(Angle)
         local SinValue = math.sin(Angle)
-    
+
         -- // Return the rotated vector
         return Vector2.new(
             (CosValue * Vector.X) - (SinValue * Vector.Y),
@@ -280,6 +260,7 @@ end
 
 -- // Base class. This is an abstract class used to build the rest, make sure to duplicate the constructor, update method, and others
 local Base = {}
+Base.allow_many = false
 Base.__index = Base
 Base.__type = "Base"
 do
@@ -537,6 +518,8 @@ do
 
                 return (Base + DistanceObject.TextBounds) * Vector2.yAxis
             end
+
+            SEE MANAGER FOR A BETTER EXAMPLE
         ]]
         Offset = Vector2.new(0, 2)
     }
@@ -740,7 +723,6 @@ do
         Enabled = true,
         OutlineEnabled = true,
 
-        Value = Vector2.zero, -- // direction -> Vector2.new(math.cos(Angle), math.sin(Angle))
         Radius = 5,
 
         Offset = Vector2.new(0, 2)
@@ -786,7 +768,10 @@ do
     end
 
     -- // Calulcates direction
-    function OffArrow:Direction(Origin, Destination)
+    function OffArrow:Direction(Destination, Origin)
+        -- // Default
+        Origin = Origin or Utilities.GetCurrentCamera().CFrame
+
         -- // Maths in order to get the angle
         local _, Yaw, Roll = Origin:ToOrientation()
         local FlatCFrame = CFrame.Angles(0, Yaw, Roll) + Origin.Position
@@ -809,9 +794,11 @@ do
         local ViewportSize = Utilities.GetCurrentCamera().ViewportSize
         local Vector25 = Vector2.one * 25
 
-        local Value = Data.Value
-        local Radius = Data.Radius
+        -- // Workout the value (direction)
+        local Value = Data.Value or self:Direction(Corners.Centre3D)
 
+        -- // Work out points
+        local Radius = Data.Radius
         local PointA = (ViewportSize / 2 + Value * Radius):Max(Vector25):Min(ViewportSize - Vector25)
         local PointB = PointA - Utilities.RotateVector2(Value, 0.45) * Radius
         local PointC = PointA - Utilities.RotateVector2(Value, -0.45) * Radius
