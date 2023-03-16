@@ -15,6 +15,7 @@
 local Base = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/Base.lua"))()
 
 -- // Services
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- // Polyfill for getboundingbox
@@ -61,6 +62,7 @@ local getboundingbox = getboundingbox or function (parts, orientation)
 end
 
 -- // Vars
+local LocalPlayer = Players.LocalPlayer
 local InstanceObjects = {}
 
 -- // InstanceObject Class
@@ -203,6 +205,15 @@ do
         end
     end
 
+    -- // Destroy all
+    function InstanceObject:Destroy()
+        -- // Loop through all objects
+        for i = #self.Objects, 1, -1 do
+            self.Objects[i]:Destroy()
+            table.remove(self.Objects, i)
+        end
+    end
+
     -- // Below are additional functions, designed to be hooked in order to add support for other features!
 
     -- // Header offset
@@ -285,11 +296,90 @@ do
 
     -- // Renders
     function PlayerManager:Render()
+        -- // Make sure instanceobject
+        if (not self.InstanceObject) then
+            return
+        end
+
         -- // Set the character
         self.InstanceObject.Instance = self:Character()
 
         -- // Render it
         self.InstanceObject:Render()
+    end
+
+    -- // Destroys instance object
+    function PlayerManager:Destroy()
+        -- // Check for instance object
+        if (self.InstanceObject) then
+            self.InstanceObject:Destroy()
+            self.InstanceObject = nil
+        end
+    end
+end
+
+-- // PlayersManager Class (for many players)
+local PlayersManager = {}
+PlayersManager.__index = PlayersManager
+PlayersManager.__type = "PlayersManager"
+do
+    -- // Constructor
+    function PlayersManager.new()
+        -- // Create the object
+        local self = setmetatable({}, PlayerManager)
+
+        -- // Set vars
+        self.Managers = {}
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Ran whenever a new player (not LocalPlayer) is added
+    function PlayersManager:OnPlayerAdded(Player)
+        table.insert(self.Managers, PlayerManager.new(Player))
+    end
+
+    -- // Destroys everything
+    function PlayersManager:Destroy()
+        -- // Disconnect if there already is one
+        if (self.PlayerAddedConnection) then
+            self.PlayerAddedConnection:Disconnect()
+        end
+
+        -- // Disconnect all managers
+        for i = #self.Managers, 1, -1 do
+            self.Managers[i]:Destroy()
+            table.remove(self.Managers, i)
+        end
+    end
+
+    -- // Initialises connection
+    function PlayersManager:InitialiseConnections()
+        -- // Set
+        self.PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
+            self:OnPlayerAdded(Player)
+        end)
+    end
+
+    -- // Initialises the entire thing
+    function PlayersManager:Initialise()
+        -- // Deinitialise previous
+        self:Destroy()
+
+        -- // Initialise for current players
+        for _, Player in ipairs(Players:GetPlayers()) do
+            -- // Make sure is not LocalPlayer
+            if (Player == LocalPlayer) then
+                continue
+            end
+
+            -- // Add
+            self:OnPlayerAdded(Player)
+        end
+
+        -- // Initialise connections
+        self:InitialiseConnections()
     end
 end
 
@@ -303,6 +393,9 @@ end)
 
 -- // Return
 return {
+    Base,
     InstanceObject = InstanceObject,
+    PlayerManager = PlayerManager,
+    PlayersManager = PlayersManager,
     InstanceObjects = InstanceObjects
 }

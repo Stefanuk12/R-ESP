@@ -1,6 +1,6 @@
 # R-ESP
 
-An ESP library heavily inspired by [sense]()
+An ESP library heavily inspired by [sense](https://github.com/shlexware/Sirius/tree/request/library/sense)
 
 ```diff 
 - For Synapse V3 only (unless a wrapper is written for V2)
@@ -9,8 +9,10 @@ An ESP library heavily inspired by [sense]()
 
 # To do
 
-- [x] Add Player Manager
+- [ ] Make it easier to initialise `Base` objects in `PlayerManager`
 - [ ] Bug fix and testing
+- [ ] Documentation
+- [ ] Example
 
 # Features
 
@@ -29,13 +31,14 @@ These are all of the features...
 
 ## Manager
 
-Haven't started yet...
+- [x] Automatic handling of objects
+- [x] Automatic handling of players
 
 # Usage
 
 This library uses OOP heavily. The base contains the objects you might need, the manager helps manage these objects by updating and rendering them. Within the manager, you can install plugins to add functionality for different games and for players, in general.
 
-## Base Documentation
+## Base
 
 I'm not really bothered to write the entirety of the documentation for the base since most of it is self-documented within the code itself. Instead, I'll provide links to each function and such.
 
@@ -115,3 +118,15 @@ Box.Properties.Filled = true
 [Box3D.new(Data: Box3D.DefaultData?, Properties: Healthbar.DefaultProperties?)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L858-L876)
 
 [Box3D:Update(Corners: Utilities.CalculateCorners)](https://github.com/Stefanuk12/R-ESP/blob/master/Base.lua#L878-L906)
+
+## InstanceObject
+
+To do...
+
+## PlayerManager
+
+To do...
+
+### PlayersManager
+
+To do...
