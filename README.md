@@ -10,7 +10,7 @@ An ESP library heavily inspired by [sense]()
 # To do
 
 - [ ] Support Synapse V3's `Point` API to increase performance
-- [ ] Add Player Manager
+- [x] Add Player Manager
 - [ ] Bug fix and testing
 
 # Features

@@ -1,3 +1,16 @@
+--[[
+    Information:
+    This handles rendering the Base objects.
+
+    If you require it, you can hook the functions and it would not affect other instances. -> e.g.
+    ```lua
+    local Object = InstanceObject.new()
+    Object.Weapon = function()
+        return "Hello"
+    end
+    ```
+]]
+
 -- // Dependencies
 local Base = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/Base.lua"))()
 
@@ -56,7 +69,7 @@ InstanceObject.__index = InstanceObject
 InstanceObject.__type = "InstanceObject"
 do
     -- // Constructor
-    function InstanceObject.new(Object)
+    function InstanceObject.new(Object, NoInsert)
         -- // Check object type
         assert(typeof(Object) == "Instance" and Object:IsA("BasePart") or Object:IsA("Model"), "invalid object, must be a BasePart or Model")
 
@@ -68,7 +81,9 @@ do
         self.Objects = {}
 
         -- // Add it to InstanceObjects
-        table.insert(InstanceObjects, self)
+        if (not NoInsert) then
+            table.insert(InstanceObjects, self)
+        end
 
         -- // Return the object
         return self
@@ -146,9 +161,9 @@ do
     end
 
     -- // Renders all objects
-    function InstanceObject:Render()
-        -- // Ensure we have some objects
-        if (#self.Objects == 0) then
+    function InstanceObject:Render(UpdateData)
+        -- // Ensure we have some objects and an instance
+        if (#self.Objects == 0 or not self.Instance) then
             return false
         end
 
@@ -168,19 +183,19 @@ do
             if (Object.__type == "Header") then
                 -- // Weapon SubType
                 if (SubType == "Weapon") then
-                    Data.Value = self:Weapon()
+                    Data.Value = UpdateData.Weapon or self:Weapon()
                 end
 
                 -- // Name SubType
                 if (SubType == "Name") then
-                    Data.Value = self:Name()
+                    Data.Value = UpdateData.Name or self:Name()
                 end
             end
 
             if (Object.__type == "Healthbar") then
-                local Value, MaxValue = self:Health()
-                Data.Value = Value
-                Data.MaxValue = MaxValue
+                local HealthData = UpdateData.Health or {self:Health()}
+                Data.Value = HealthData[1]
+                Data.MaxValue = HealthData[2]
             end
 
             -- // Update
@@ -237,6 +252,44 @@ do
 
         -- // Return
         return Humanoid.Health, Humanoid.MaxHealth
+    end
+end
+
+-- // PlayerManager Class
+local PlayerManager = {}
+PlayerManager.__index = PlayerManager
+PlayerManager.__type = "PlayerManager"
+do
+    -- // Constructor
+    function PlayerManager.new(Player, NoInsert)
+        -- // Create the object
+        local self = setmetatable({}, PlayerManager)
+
+        -- // Set vars
+        self.Player = Player
+        self.InstanceObject = InstanceObject.new(nil, true)
+
+        -- // Add it
+        if (not NoInsert) then
+            table.insert(InstanceObjects, self)
+        end
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Gets the character
+    function PlayerManager:Character()
+        return self.Player.Character
+    end
+
+    -- // Renders
+    function PlayerManager:Render()
+        -- // Set the character
+        self.InstanceObject.Instance = self:Character()
+
+        -- // Render it
+        self.InstanceObject:Render()
     end
 end
 
