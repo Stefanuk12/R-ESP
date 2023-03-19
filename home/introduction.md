@@ -9,3 +9,5 @@ This is `R-ESP` (Roblox-ESP). A project that is heavily inspired by a pre-existi
 {% hint style="danger" %}
 This only support Synapse V3 due to it using the new Drawing API and some functions like `getboundingbox` and `worldtoscreen`.
 {% endhint %}
+
+If you wish to support me, send donations to [my PayPal](https://paypal.me/Stefanuk12) :grinning:
