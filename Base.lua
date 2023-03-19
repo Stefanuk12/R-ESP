@@ -248,7 +248,6 @@ do
         return Object
     end
 
-
     -- // Creates a new drawing object
     function Utilities.CreateDrawing(Properties)
         -- // Create the object
@@ -419,7 +418,7 @@ do
         Enabled = true,
         OutlineEnabled = true,
 
-        TracerOrigin = "Bottom"
+        TracerOrigin = "Bottom" -- // Top, Middle, Bottom
     }
     Tracer.DefaultProperties = {
         Main = {
