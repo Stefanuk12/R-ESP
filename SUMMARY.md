@@ -6,6 +6,7 @@
 
 * [👋 Introduction](home/introduction.md)
 * [📜 To Do](home/to-do.md)
+* [🥚 Examples](home/examples.md)
 
 ## 🛠 Utilities
 
