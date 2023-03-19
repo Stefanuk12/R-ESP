@@ -4,4 +4,4 @@ An ESP library heavily inspired by [sense](https://github.com/shlexware/Sirius/t
 
 # Documentation
 
-All documentation, features, and showcases can be seen [here](https://stefanuk12.gitbook.io/r-esp/)
+All documentation, features, and showcases can be seen [here](https://stefanuk12.gitbook.io/r-esp-1/)
