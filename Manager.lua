@@ -12,54 +12,11 @@
 ]]
 
 -- // Dependencies
-local Base = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/Base.lua"))()
+local Base = RESP_BASE or loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/Base.lua"))()
 
 -- // Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
--- // Polyfill for getboundingbox
-local getboundingbox = getboundingbox or function (parts, orientation)
-    -- // Vars
-    orientation = orientation or CFrame.new()
-    local MinPosition
-    local MaxPosition
-
-    -- // Loop through part
-    for _, Part in ipairs(parts) do
-        -- // Ensure is base part or model
-        if not (Part:IsA("BasePart") or Part:IsA("Model")) then
-            continue
-        end
-
-        -- // Check if model
-        if (Part:IsA("Model")) then
-            -- // Add each base part
-            for _, SubPart in ipairs(Part:GetDescendants()) do
-                table.insert(parts, SubPart)
-            end
-
-            -- // Done
-            continue
-        end
-
-        -- // Part data
-        local PartPosition = orientation:ToObjectSpace(Part.CFrame).Position
-        local HalfPartSize = Part.Size / 2
-
-        -- // Set min/max
-        MinPosition = (MinPosition or PartPosition):Min(PartPosition - HalfPartSize)
-        MaxPosition = (MaxPosition or PartPosition):Max(PartPosition + HalfPartSize)
-    end
-
-    -- // Calculate the some things
-    local Center = (MinPosition + MaxPosition) / 2
-
-    -- // Return
-    local BoxCFrame = (orientation - orientation.Position) + orientation:PointToWorldSpace(Center)
-    local BoxSize = MaxPosition - MinPosition
-    return BoxCFrame, BoxSize
-end
 
 -- // Vars
 local LocalPlayer = Players.LocalPlayer
@@ -163,7 +120,7 @@ do
     end
 
     -- // Renders all objects
-    function InstanceObject:Render(UpdateData)
+    function InstanceObject:Render()
         -- // Ensure we have some objects and an instance
         if (#self.Objects == 0 or not self.Instance) then
             return false
@@ -185,17 +142,22 @@ do
             if (Object.__type == "Header") then
                 -- // Weapon SubType
                 if (SubType == "Weapon") then
-                    Data.Value = UpdateData.Weapon or self:Weapon()
+                    Data.Value = Data.Weapon or self:Weapon()
                 end
 
                 -- // Name SubType
                 if (SubType == "Name") then
-                    Data.Value = UpdateData.Name or self:Name()
+                    Data.Value = Data.Name or self:Name()
+                end
+
+                -- // Distance SubType
+                if (SubType == "Distance") then
+                    Data.Value = Data.Distance or self:Distance()
                 end
             end
 
             if (Object.__type == "Healthbar") then
-                local HealthData = UpdateData.Health or {self:Health()}
+                local HealthData = Data.Health or {self:Health()}
                 Data.Value = HealthData[1]
                 Data.MaxValue = HealthData[2]
             end
@@ -263,6 +225,11 @@ do
 
         -- // Return
         return Humanoid.Health, Humanoid.MaxHealth
+    end
+
+    -- // Gets distance from point
+    function InstanceObject:Distance()
+        return LocalPlayer:DistanceFromCharacter(self.Instance:GetPivot().Position)
     end
 end
 
@@ -392,10 +359,12 @@ RunService:BindToRenderStep("R-ESP-Render", 0, function(dT)
 end)
 
 -- // Return
-return {
+local RESP_MANAGER = {
     Base,
     InstanceObject = InstanceObject,
     PlayerManager = PlayerManager,
     PlayersManager = PlayersManager,
     InstanceObjects = InstanceObjects
 }
+getgenv().RESP_MANAGER = RESP_MANAGER
+return RESP_MANAGER

@@ -13,6 +13,7 @@ An ESP library heavily inspired by [sense](https://github.com/shlexware/Sirius/t
 - [ ] Bug fix and testing
 - [ ] Documentation
 - [ ] Example
+- [ ] Types and failsafe checks
 
 # Features
 

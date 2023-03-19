@@ -10,8 +10,8 @@
 local Workspace = game:GetService("Workspace")
 
 -- // Vars
-local ZeroVector3 = Vector3.zero
 local ZeroVector2 = Vector2.zero
+local DefaultFont = DrawFont.RegisterDefault("SegoeUI", {})
 local Vertices = {
 	Vector3.new(-1, -1, -1),
 	Vector3.new(-1,  1, -1),
@@ -104,6 +104,12 @@ do
         return Workspace.CurrentCamera
     end
 
+    -- // Checks if a point is on screen
+    function Utilities.IsOnScreen(Point)
+        local ViewportSize = Utilities.GetCurrentCamera().ViewportSize
+        return Point.X <= ViewportSize.X and Point.Y <= ViewportSize.Y
+    end
+
     -- // Applies operation to Vector2
     function Utilities.ApplyVector2(Vector, f)
         return Vector2.new(f(Vector.X), f(Vector.Y))
@@ -112,24 +118,19 @@ do
     -- // Combine two tables
     function Utilities.CombineTables(Base, ToAdd)
         -- // Default
-        ToAdd = ToAdd or {}
         Base = Base or {}
+        ToAdd = ToAdd or {}
 
         -- // Loop through data we want to add
         for i, v in pairs(ToAdd) do
-            -- // If data does not exist
-            if (not Base[i]) then
-                Base[i] = v
+            -- // Recursive
+            local BaseValue = Base[i] or false
+            if (typeof(v) == "table" and typeof(BaseValue) == "table") then
+                Utilities.CombineTables(BaseValue, v)
                 continue
             end
 
-            -- // Check if table
-            if (typeof(v) == "table") then
-                Base[i] = Utilities.CombineTables(Base, v)
-                continue
-            end
-
-            -- // Add
+            -- // Set
             Base[i] = v
         end
 
@@ -158,26 +159,25 @@ do
     end
 end
 
--- // Polyfill for worldtoscreen
-local worldtoscreen = worldtoscreen or function (points, offset)
-    -- // Vars
-    offset = offset or ZeroVector3
-    local CurrentCamera = Utilities.GetCurrentCamera()
-    local Results = {}
-
-    -- // Loop through each point
-    for i, Point in pairs(points) do
-        -- // Get on screen position and add to table
-        local Position, _ = CurrentCamera:WorldToViewportPoint(Point + offset)
-        Results[i] = Position
-    end
-
-    -- // Return
-    return Results
-end
-
 -- // Utilities - continued
 do
+    -- // Converts Vector3 to Vector2
+    function Utilities.ConvertV3toV2(Vector)
+        -- // Convert if vector 3
+        if (typeof(Vector) == "Vector3") then
+            return Vector2.new(Vector.X, Vector.Y)
+        end
+
+        -- // Loop through all vectors
+        local Vectors = {}
+        for i, v in ipairs(Vector) do
+            Vectors[i] = Utilities.ConvertV3toV2(v)
+        end
+
+        -- // Return
+        return Vectors
+    end
+
     -- // Gets the corners of a part (or bounding box)
     function Utilities.CalculateCorners(PartCFrame, PartSize)
         -- // Vars
@@ -186,15 +186,16 @@ do
 
         -- // Calculate each corner
         for i, Vertex in ipairs(Vertices) do
-            Corners[i] = PartCFrame + (HalfSize * Vertex)
+            Corners[i] = (PartCFrame + (HalfSize * Vertex)).Position
         end
 
         -- // Convert to screen
         local Corners2D = worldtoscreen(Corners)
+        local Corners2DV2 = Utilities.ConvertV3toV2(Corners2D)
 
         -- // Get min and max
-        local MinPosition = Utilities.GetCurrentCamera().ViewportSize:Min(unpack(Corners2D))
-        local MaxPosition = ZeroVector2:Max(unpack(Corners2D))
+        local MinPosition = Utilities.GetCurrentCamera().ViewportSize:Min(unpack(Corners2DV2))
+        local MaxPosition = ZeroVector2:Max(unpack(Corners2DV2))
 
         -- // Add data to table
         local mathfloor = math.floor
@@ -249,9 +250,9 @@ do
 
 
     -- // Creates a new drawing object
-    function Utilities.CreateDrawing(Type, Properties)
+    function Utilities.CreateDrawing(Properties)
         -- // Create the object
-        local Object = getgenv()[Type].new()
+        local Object = getgenv()[Properties.Type].new()
 
         -- // Return
         return Utilities.SetDrawingProperties(Object, Properties)
@@ -284,13 +285,12 @@ do
         -- // Loop through the properties
         for i, Property in pairs(Properties) do
             -- // Check if table
-            if (typeof(Property) == "table") then
-                Objects[i] = self:InitialiseObjects(Data, Property)
+            if (typeof(Property) ~= "table") then
                 continue
             end
 
             -- // Create the object and add it
-            Objects[i] = Utilities.CreateDrawing(Property.Type, Property)
+            Objects[i] = Utilities.CreateDrawing(Property)
         end
 
         -- // Return
@@ -319,7 +319,7 @@ do
     -- // Updates the properties of properties (assumes only main and outline)
     function Base:Update(Corners)
         -- // Check for visibility
-        local IsVisible = self.Data.Enabled and Corners.Corners[1].Z < 0
+        local IsVisible = self.Data.Enabled
 
         -- // Vars
         local MainData = {self.AdditionalData.ColorOpacity(self)}
@@ -363,27 +363,27 @@ do
             Outlined = true,
             OutlineColor = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
-            OutlineThickness = 3,
+            OutlineThickness = 1,
 
-            Visible = false,
+            Visible = false
         }
     }
 
     -- // Constructor
     function BoxSquare.new(Data, Properties)
         -- // Default values
-        Data = Data or BoxSquare.DefaultData
-        Properties = Properties or BoxSquare.DefaultProperties
+        Data = Data or {}
+        Properties = Properties or {}
 
         -- // Create the object
         local self = setmetatable({}, BoxSquare)
 
         -- // Vars
-        self.Data = Data
+        self.Data = Utilities.CombineTables(Utilities.DeepCopy(BoxSquare.DefaultData), Data)
+        self.Properties = Utilities.CombineTables(Utilities.DeepCopy(BoxSquare.DefaultProperties), Properties)
 
-        -- // Combine the properties and make the object(s)
-        local DefaultProperties = BoxSquare.DefaultProperties
-        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+        -- // Make the object(s)
+        self.Objects = self:InitialiseObjects(self.Data, self.Properties)
 
         -- // Return the object
         return self
@@ -394,17 +394,13 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local IsVisible = Data.Enabled
         local OutlineVisible = IsVisible and Data.OutlineEnabled
-
-        -- // Vars
-        local BoxPosition = Corners.TopLeft
-        local BoxSize = Corners.BottomRight - Corners.TopLeft
 
         -- // Set the properties
         Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
-            Position = BoxPosition,
-            Size = BoxSize,
+            Position = Corners.TopLeft,
+            BottomRight = Corners.BottomRight,
 
             Outlined = OutlineVisible,
             Visible = IsVisible
@@ -421,7 +417,9 @@ do
     -- // Initialise box data
     Tracer.DefaultData = {
         Enabled = true,
-        OutlineEnabled = true
+        OutlineEnabled = true,
+
+        TracerOrigin = "Bottom"
     }
     Tracer.DefaultProperties = {
         Main = {
@@ -434,7 +432,7 @@ do
             Outlined = true,
             OutlineColor = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
-            OutlineThickness = 3,
+            OutlineThickness = 1,
 
             Visible = false,
         }
@@ -443,18 +441,18 @@ do
     -- // Constructor
     function Tracer.new(Data, Properties)
         -- // Default values
-        Data = Data or Tracer.DefaultData
-        Properties = Properties or Tracer.DefaultProperties
+        Data = Data or {}
+        Properties = Properties or {}
 
         -- // Create the object
         local self = setmetatable({}, Tracer)
 
         -- // Vars
-        self.Data = Data
+        self.Data = Utilities.CombineTables(Utilities.DeepCopy(Tracer.DefaultData), Data)
+        self.Properties = Utilities.CombineTables(Utilities.DeepCopy(Tracer.DefaultProperties), Properties)
 
-        -- // Combine the properties and make the object(s)
-        local DefaultProperties = Tracer.DefaultProperties
-        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+        -- // Make the object(s)
+        self.Objects = self:InitialiseObjects(self.Data, self.Properties)
 
         -- // Return the object
         return self
@@ -465,7 +463,7 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local IsVisible = Data.Enabled
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
@@ -503,7 +501,8 @@ do
 
         Formats = {
             Name = "%s",
-            Distance = "%f studs"
+            Weapon = "%s",
+            Distance = "%0.1f studs",
         },
 
         --[[
@@ -511,7 +510,7 @@ do
 
             PSEUDOCODE
             function (self)
-                local Base = Vector2.new(0, 2)
+                local Base = Vector2.new(0, 0)
                 if (not DistanceObject.Visible) then
                     return Base
                 end
@@ -521,13 +520,13 @@ do
 
             SEE MANAGER FOR A BETTER EXAMPLE
         ]]
-        Offset = Vector2.new(0, 2)
+        Offset = Vector2.new(0, 0)
     }
     Header.DefaultProperties = {
         Main = {
             Type = "TextDynamic",
 
-            Font = 2,
+            Font = DefaultFont,
             Size = 13,
 
             Color = Color3.new(1, 0, 0),
@@ -543,18 +542,18 @@ do
     -- // Constructor
     function Header.new(Data, Properties)
         -- // Default values
-        Data = Data or Header.DefaultData
-        Properties = Properties or Header.DefaultProperties
+        Data = Data or {}
+        Properties = Properties or {}
 
         -- // Create the object
         local self = setmetatable({}, Header)
 
         -- // Vars
-        self.Data = Data
+        self.Data = Utilities.CombineTables(Utilities.DeepCopy(Header.DefaultData), Data)
+        self.Properties = Utilities.CombineTables(Utilities.DeepCopy(Header.DefaultProperties), Properties)
 
-        -- // Combine the properties and make the object(s)
-        local DefaultProperties = Header.DefaultProperties
-        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+        -- // Make the object(s)
+        self.Objects = self:InitialiseObjects(self.Data, self.Properties)
 
         -- // Return the object
         return self
@@ -589,12 +588,12 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local IsVisible = Data.Enabled
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Set the properties
         Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
-            Position = self:GetPosition(),
+            Position = self:GetPosition(Corners),
             Text = Data.Formats[Data.Type]:format(Data.Value),
 
             Outlined = OutlineVisible,
@@ -620,7 +619,9 @@ do
         MinColour = Color3.new(1, 0, 0),
         MaxColour = Color3.new(0, 1, 0),
 
-        Offset = Vector2.new(0, 2)
+        Offset = Vector2.new(0, 0),
+        TextOffset = Vector2.new(5, 0),
+        WidthOffset = 5 -- // %
     }
     Healthbar.DefaultProperties = {
         Main = {
@@ -634,14 +635,14 @@ do
             Outlined = true,
             OutlineColor = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
-            OutlineThickness = 3,
+            OutlineThickness = 1,
 
             Visible = false,
         },
         Text = {
             Type = "TextDynamic",
 
-            Font = 2,
+            Font = DefaultFont,
             Size = 13,
 
             Color = Color3.new(1, 0, 0),
@@ -657,18 +658,18 @@ do
     -- // Constructor
     function Healthbar.new(Data, Properties)
         -- // Default values
-        Data = Data or Healthbar.DefaultData
-        Properties = Properties or Healthbar.DefaultProperties
+        Data = Data or {}
+        Properties = Properties or {}
 
         -- // Create the object
         local self = setmetatable({}, Healthbar)
 
         -- // Vars
-        self.Data = Data
+        self.Data = Utilities.CombineTables(Utilities.DeepCopy(Healthbar.DefaultData), Data)
+        self.Properties = Utilities.CombineTables(Utilities.DeepCopy(Healthbar.DefaultProperties), Properties)
 
-        -- // Combine the properties and make the object(s)
-        local DefaultProperties = Healthbar.DefaultProperties
-        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+        -- // Make the object(s)
+        self.Objects = self:InitialiseObjects(self.Data, self.Properties)
 
         -- // Return the object
         return self
@@ -679,12 +680,14 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local IsVisible = Data.Enabled
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
-        local To = Corners.BottomLeft - Data.Offset
-        local From = Corners.TopLeft - Data.Offset
+        local Width = (Corners.TopLeft - Corners.BottomRight) * (Data.WidthOffset / 100) * Vector2.xAxis
+        local CombinedOffset = Width - Data.Offset
+        local To = Corners.BottomLeft + CombinedOffset
+        local From = Corners.TopLeft + CombinedOffset
 
         local ValueRatio = Data.Value / Data.MaxValue
         local LerpFrom = To:Lerp(From, ValueRatio)
@@ -704,7 +707,7 @@ do
         local TextObject = self.Objects.Text
         Utilities.SetDrawingProperties(TextObject, Utilities.CombineTables(Properties.Text, {
             Text = math.round(Data.Value) .. "HP",
-            Position = From - Data.Offset - TextObject.TextBounds / 2,
+            Position = LerpFrom - Data.TextOffset - TextObject.TextBounds / 2,
 
             Outlined = OutlineVisible,
             Visible = IsVisible
@@ -723,9 +726,10 @@ do
         Enabled = true,
         OutlineEnabled = true,
 
-        Radius = 5,
+        Radius = 150,
+        Size = 15,
 
-        Offset = Vector2.new(0, 2)
+        Offset = Vector2.new(0, 0)
     }
     OffArrow.DefaultProperties = {
         Main = {
@@ -741,7 +745,7 @@ do
             Outlined = true,
             OutlineColor = Color3.new(0, 0, 0),
             OutlineOpacity = 1,
-            OutlineThickness = 3,
+            OutlineThickness = 1,
 
             Visible = false,
         }
@@ -750,18 +754,18 @@ do
     -- // Constructor
     function OffArrow.new(Data, Properties)
         -- // Default values
-        Data = Data or OffArrow.DefaultData
-        Properties = Properties or OffArrow.DefaultProperties
+        Data = Data or {}
+        Properties = Properties or {}
 
         -- // Create the object
         local self = setmetatable({}, OffArrow)
 
         -- // Vars
-        self.Data = Data
+        self.Data = Utilities.CombineTables(Utilities.DeepCopy(OffArrow.DefaultData), Data)
+        self.Properties = Utilities.CombineTables(Utilities.DeepCopy(OffArrow.DefaultProperties), Properties)
 
-        -- // Combine the properties and make the object(s)
-        local DefaultProperties = OffArrow.DefaultProperties
-        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+        -- // Make the object(s)
+        self.Objects = self:InitialiseObjects(self.Data, self.Properties)
 
         -- // Return the object
         return self
@@ -787,7 +791,8 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local Centre3D = Corners.Centre3D
+        local IsVisible = Data.Enabled and not Utilities.IsOnScreen(Centre3D)
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
@@ -795,13 +800,13 @@ do
         local Vector25 = Vector2.one * 25
 
         -- // Workout the value (direction)
-        local Value = Data.Value or self:Direction(Corners.Centre3D)
+        local Value = Data.Value or self:Direction(Centre3D)
 
         -- // Work out points
-        local Radius = Data.Radius
-        local PointA = (ViewportSize / 2 + Value * Radius):Max(Vector25):Min(ViewportSize - Vector25)
-        local PointB = PointA - Utilities.RotateVector2(Value, 0.45) * Radius
-        local PointC = PointA - Utilities.RotateVector2(Value, -0.45) * Radius
+        local Size = Data.Size
+        local PointA = (ViewportSize / 2 + Value * Data.Radius):Max(Vector25):Min(ViewportSize - Vector25)
+        local PointB = PointA - Utilities.RotateVector2(Value, 0.45) * Size
+        local PointC = PointA - Utilities.RotateVector2(Value, -0.45) * Size
 
         -- // Set the properties
         Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
@@ -828,35 +833,34 @@ do
         Enabled = true,
         OutlineEnabled = true,
     }
-    Box3D.DefaultProperties = table.create(4, { -- // Create each face
-        {
-            Type = "PolyLineDynamic",
-            Thickness = 1,
+    Box3D.DefaultProperties = table.create(4, {-- // Create each face
+        Type = "PolyLineDynamic",
+        Thickness = 1,
 
-            Outlined = true,
-            OutlineColor = Color3.new(0, 0, 0),
-            OutlineOpacity = 1,
-            OutlineThickness = 3,
+        Outlined = true,
+        OutlineColor = Color3.new(0, 0, 0),
+        OutlineOpacity = 1,
+        OutlineThickness = 1,
 
-            Visible = false
-        },
+        Visible = false,
+        ZIndex = -1
     })
 
     -- // Constructor
     function Box3D.new(Data, Properties)
         -- // Default values
-        Data = Data or Box3D.DefaultData
-        Properties = Properties or Box3D.DefaultProperties
+        Data = Data or {}
+        Properties = Properties or {}
 
         -- // Create the object
         local self = setmetatable({}, Box3D)
 
         -- // Vars
-        self.Data = Data
+        self.Data = Utilities.CombineTables(Utilities.DeepCopy(Box3D.DefaultData), Data)
+        self.Properties = Utilities.CombineTables(Utilities.DeepCopy(Box3D.DefaultProperties), Properties)
 
-        -- // Combine the properties and make the object(s)
-        local DefaultProperties = Box3D.DefaultProperties
-        self.Objects = self:InitialiseObjects(Data, Utilities.CombineTables(DefaultProperties, Properties))
+        -- // Make the object(s)
+        self.Objects = self:InitialiseObjects(self.Data, self.Properties)
 
         -- // Return the object
         return self
@@ -867,11 +871,11 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled and Corners.Corners[1].Z < 0
+        local IsVisible = Data.Enabled
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Loop through each face
-        local CornersArray = Corners.Corners
+        local CornersArray = Utilities.ConvertV3toV2(Corners.Corners)
         local PointArray = {1, 5, 4}
         for i = 1, #Properties do
             -- // Create the points table
@@ -880,7 +884,7 @@ do
                 local Point = CornersArray[(i % 4) + PointArray[j]]
                 table.insert(Points, Point)
             end
-            table.insert(CornersArray[i == 4 and 8 or (i + PointArray[3])])
+            table.insert(Points, CornersArray[i == 4 and 8 or (i + PointArray[3])])
 
             -- // Set properties
             Utilities.SetDrawingProperties(self.Objects[i], Utilities.CombineTables(Properties[i], {
@@ -894,7 +898,7 @@ do
 end
 
 -- // Return
-return {
+local RESP_BASE = {
     Utilities = Utilities,
     Base = Base,
     BoxSquare = BoxSquare,
@@ -904,3 +908,5 @@ return {
     OffArrow = OffArrow,
     Box3D = Box3D
 }
+getgenv().RESP_BASE = RESP_BASE
+return RESP_BASE
