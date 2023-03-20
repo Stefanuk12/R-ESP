@@ -257,7 +257,6 @@ end
 
 -- // Base class. This is an abstract class used to build the rest, make sure to duplicate the constructor, update method, and others
 local Base = {}
-Base.allow_many = false
 Base.__index = Base
 Base.__type = "Base"
 do
