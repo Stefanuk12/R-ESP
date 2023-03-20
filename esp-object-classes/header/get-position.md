@@ -4,7 +4,7 @@ description: <Vector2> Header:GetPosition(<table> Corners)
 
 # Get Position
 
-Calculates where the position of the `Header` should be based on the offset and it's `Type`.
+Calculates where the position of the [Header ](./)should be based on the offset and it's [Type](data.md#headertype).
 
 ## Parameters
 

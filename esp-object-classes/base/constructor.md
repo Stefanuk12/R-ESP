@@ -4,7 +4,7 @@ description: <Base> Base.new(<table> Data, <table> Properties)
 
 # Constructor
 
-Initialises the `Base` class.
+Initialises the [Base ](./)class.
 
 {% hint style="info" %}
 For the `Data` parameter, options for what you could put will be said. For the `Properties` parameter, make sure to follow what was said in [Initialise Objects](../../utilities/combine-tables.md)

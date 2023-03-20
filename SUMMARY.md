@@ -5,8 +5,9 @@
 ## 🏡 Home
 
 * [👋 Introduction](home/introduction.md)
-* [📜 To Do](home/to-do.md)
+* [⁉ Usage](home/usage.md)
 * [🥚 Examples](home/examples.md)
+* [📜 To Do](home/to-do.md)
 
 ## 🛠 Utilities
 
@@ -47,3 +48,28 @@
 * [⚾ Box3D](esp-object-classes/box3d/README.md)
   * [Data](esp-object-classes/box3d/data.md)
   * [Properties](esp-object-classes/box3d/properties.md)
+
+## 💿 Managers
+
+* [📀 InstanceObject](managers/instanceobject/README.md)
+  * [Constructor](managers/instanceobject/constructor.md)
+  * [Get](managers/instanceobject/get.md)
+  * [Has](managers/instanceobject/has.md)
+  * [Add](managers/instanceobject/add.md)
+  * [Render](managers/instanceobject/render.md)
+  * [Destroy](managers/instanceobject/destroy.md)
+  * [Name](managers/instanceobject/name.md)
+  * [Weapon](managers/instanceobject/weapon.md)
+  * [Health](managers/instanceobject/health.md)
+  * [Distance](managers/instanceobject/distance.md)
+* [📀 PlayerManager](managers/playermanager/README.md)
+  * [Constructor](managers/playermanager/constructor.md)
+  * [Character](managers/playermanager/character.md)
+  * [Render](managers/playermanager/render.md)
+  * [Destroy](managers/playermanager/destroy.md)
+* [📀 PlayerManagers](managers/playermanagers/README.md)
+  * [Constructor](managers/playermanagers/constructor.md)
+  * [OnPlayerAdded](managers/playermanagers/onplayeradded.md)
+  * [Destroy](managers/playermanagers/destroy.md)
+  * [InitialiseConnections](managers/playermanagers/initialiseconnections.md)
+  * [Initialise](managers/playermanagers/initialise.md)

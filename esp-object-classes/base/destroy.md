@@ -4,7 +4,7 @@ description: <void> Base:Destroy(<table<DrawEntry>> TableObject)
 
 # Destroy
 
-Destroys and removes each instance of a class (usually of `Base`) in the `TableObject`.
+Destroys and removes each instance of a class (usually of [Base](./)) in the `TableObject`.
 
 ## Parameters
 
