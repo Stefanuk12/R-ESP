@@ -104,12 +104,6 @@ do
         return Workspace.CurrentCamera
     end
 
-    -- // Checks if a point is on screen
-    function Utilities.IsOnScreen(Point)
-        local ViewportSize = Utilities.GetCurrentCamera().ViewportSize
-        return Point.X <= ViewportSize.X and Point.Y <= ViewportSize.Y
-    end
-
     -- // Applies operation to Vector2
     function Utilities.ApplyVector2(Vector, f)
         return Vector2.new(f(Vector.X), f(Vector.Y))
@@ -194,7 +188,8 @@ do
         local Corners2DV2 = Utilities.ConvertV3toV2(Corners2D)
 
         -- // Get min and max
-        local MinPosition = Utilities.GetCurrentCamera().ViewportSize:Min(unpack(Corners2DV2))
+        local CurrentCamera = Utilities.GetCurrentCamera()
+        local MinPosition = CurrentCamera.ViewportSize:Min(unpack(Corners2DV2))
         local MaxPosition = ZeroVector2:Max(unpack(Corners2DV2))
 
         -- // Add data to table
@@ -210,8 +205,10 @@ do
             BottomRight = ApplyVector2(MaxPosition, mathfloor),
         }
 
-        -- // Get centre
-        Data.Centre = (MinPosition + MaxPosition) / 2
+        -- // Get centre and onscreen
+        local CentrePos, OnScreen = CurrentCamera:WorldToViewportPoint(Data.Centre3D)
+        Data.Centre = CentrePos
+        Data.OnScreen = OnScreen
 
         -- // Return
         return Data
@@ -393,7 +390,7 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled
+        local IsVisible = Data.Enabled and Corners.OnScreen
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Set the properties
@@ -462,7 +459,7 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled
+        local IsVisible = Data.Enabled and Corners.OnScreen
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
@@ -587,7 +584,7 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled
+        local IsVisible = Data.Enabled and Corners.OnScreen
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Set the properties
@@ -679,7 +676,7 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled
+        local IsVisible = Data.Enabled and Corners.OnScreen
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
@@ -791,7 +788,7 @@ do
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
         local Centre3D = Corners.Centre3D
-        local IsVisible = Data.Enabled and not Utilities.IsOnScreen(Centre3D)
+        local IsVisible = Data.Enabled and not Corners.OnScreen
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Vars
@@ -870,7 +867,7 @@ do
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
-        local IsVisible = Data.Enabled
+        local IsVisible = Data.Enabled and Corners.OnScreen
         local OutlineVisible = IsVisible and Data.OutlineEnabled
 
         -- // Loop through each face
