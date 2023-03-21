@@ -9,3 +9,4 @@ description: Ideas and things I need to do
 * [x] Documentation
 * [ ] Example
 * [ ] Types and failsafe checks
+* [ ] Support many headers at once
