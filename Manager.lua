@@ -108,8 +108,9 @@ do
     -- // Adds an object of type
     function InstanceObject:Add(Type, Data, Properties)
         -- // Asserts and default
-        assert(typeof(Type) == "string", "invalid type for Type (expecting string)")
         Data = Data or {}
+        Properties = Properties or {}
+        assert(typeof(Type) == "string", "invalid type for Type (expecting string)")
         assert(typeof(Data) == "table", "invalid type for Data (expected table)")
         assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
@@ -208,23 +209,27 @@ do
         local Mounts = Data.Mounts
         local MountType = Data.Mounts[Data.Type]
         for i = #Headers, 1, -1 do
-            -- // Makes sure header type matches - otherweise remove
-            if (Mounts[Headers[i].Type] ~= MountType) then
+            local Header = Headers[i]
+
+            -- // Makes sure header type matches - otherwise remove
+            if (Mounts[Header.Data.Type] ~= MountType) then
                 table.remove(Headers, i)
             end
         end
 
         -- // Get i
-        local i = table.find(Headers, HeaderObject)
-        if (not i) then
+        local iHeaderObject = table.find(Headers, HeaderObject)
+        if (not iHeaderObject) then
             return BaseOffset
         end
 
         -- // Workout out the offset (supports many headers)
-        local Offset = BaseOffset + HeaderObject.Objects.Main.TextBounds * Vector2.yAxis * i
+        for i = 1, iHeaderObject do
+            BaseOffset = BaseOffset + Headers[i].Objects.Main.TextBounds * Vector2.yAxis
+        end
 
         -- // Return
-        return Offset
+        return BaseOffset
     end
 
     -- // Gets the name of the object
