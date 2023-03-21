@@ -118,9 +118,6 @@ do
         local ObjectBuilder = Base[Type]
         assert(ObjectBuilder, "type does not exist - invalid object type")
 
-        -- // Make sure does not have
-        assert(not self:Has(Type), "object of type (and subtype) already exists")
-
         -- // Construct it
         local Object = ObjectBuilder.new(Data, Properties)
         table.insert(self.Objects, Object)
