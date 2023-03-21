@@ -31,7 +31,8 @@ do
     function InstanceObject.new(Object, NoInsert)
         -- // Defaults and check object type
         NoInsert = NoInsert or false
-        assert(typeof(Object) == "Instance" and Object:IsA("BasePart") or Object:IsA("Model"), "invalid type for Object (expecting BasePart or Model)")
+        assert(table.find({"Instance", "nil"}, typeof(Object)), "invalid type for Object (expecting Instance or nil)")
+        assert(Object and (Object:IsA("BasePart") or Object:IsA("Model")) or not Object, "invalid type for Object (expecting BasePart or Model or nil)")
         assert(typeof(NoInsert) == "boolean", "invalid type for NoInsert (expecting boolean)")
 
         -- // Create the object
@@ -270,9 +271,7 @@ do
     -- // Constructor
     function PlayerManager.new(Player, NoInsert)
         -- // Defaults and check object type
-        if (NoInsert == nil) then
-            NoInsert = true -- // Default to true as otherwise Render will be called twice
-        end
+        NoInsert = NoInsert or false
         assert(typeof(Player) == "Instance" and Player:IsA("Player"), "invalid type for Player (expecting Player)")
         assert(typeof(NoInsert) == "boolean", "invalid type for NoInsert (expecting boolean)")
 
@@ -304,13 +303,13 @@ do
 
     -- // Renders
     function PlayerManager:Render()
+        -- // Set the character
+        self.InstanceObject.Instance = self:Character()
+
         -- // Make sure instanceobject
         if (not self.InstanceObject) then
             return
         end
-
-        -- // Set the character
-        self.InstanceObject.Instance = self:Character()
 
         -- // Render it
         self.InstanceObject:Render()
@@ -334,7 +333,7 @@ do
     -- // Constructor
     function PlayersManager.new()
         -- // Create the object
-        local self = setmetatable({}, PlayerManager)
+        local self = setmetatable({}, PlayersManager)
 
         -- // Set vars
         self.Managers = {}
