@@ -21,6 +21,14 @@ Object:Add("Header", {
     Type = "Weapon",
     Weapon = "AK-47"
 })
+Object:Add("Header", {
+    Type = "MiscTop",
+    Value = "Cool Person"
+})
+Object:Add("Header", {
+    Type = "MiscBottom",
+    Value = "Bottom Text"
+})
 Object:Add("Healthbar")
 Object:Add("OffArrow")
 Object:Add("Box3D")

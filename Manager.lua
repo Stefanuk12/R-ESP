@@ -29,8 +29,10 @@ InstanceObject.__type = "InstanceObject"
 do
     -- // Constructor
     function InstanceObject.new(Object, NoInsert)
-        -- // Check object type
-        assert(typeof(Object) == "Instance" and Object:IsA("BasePart") or Object:IsA("Model"), "invalid object, must be a BasePart or Model")
+        -- // Defaults and check object type
+        NoInsert = NoInsert or false
+        assert(typeof(Object) == "Instance" and Object:IsA("BasePart") or Object:IsA("Model"), "invalid type for Object (expecting BasePart or Model)")
+        assert(typeof(NoInsert) == "boolean", "invalid type for NoInsert (expecting boolean)")
 
         -- // Create the object
         local self = setmetatable({}, InstanceObject)
@@ -50,6 +52,10 @@ do
 
     -- // Gets all objects of a certain type
     function InstanceObject:Get(Type, SubType)
+        -- // Asserts
+        assert(typeof(Type) == "string", "invalid type for Type (expecting string)")
+        assert(table.find({"nil", "string"}, typeof(SubType)), "invalid type for SubType (expecting string or nil)")
+
         -- // Vars
         local Found = {}
 
@@ -67,6 +73,10 @@ do
 
     -- // Check if has object of type
     function InstanceObject:Has(Type, SubType)
+        -- // Asserts
+        assert(typeof(Type) == "string", "invalid type for Type (expecting string)")
+        assert(table.find({"nil", "string"}, typeof(SubType)), "invalid type for SubType (expecting string or nil)")
+
         -- // Grab all objects that match
         local Objects = self:Get(Type, SubType)
 
@@ -97,6 +107,12 @@ do
 
     -- // Adds an object of type
     function InstanceObject:Add(Type, Data, Properties)
+        -- // Asserts and default
+        assert(typeof(Type) == "string", "invalid type for Type (expecting string)")
+        Data = Data or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
+
         -- // Get the object builder
         local ObjectBuilder = Base[Type]
         assert(ObjectBuilder, "type does not exist - invalid object type")
@@ -180,24 +196,35 @@ do
 
     -- // Header offset
     function InstanceObject:HeaderOffset(HeaderObject)
+        -- // Assert
+        assert(typeof(HeaderObject) == "table" and HeaderObject.__type == "Header", "invalid type for HeaderObject (expecting Header)")
+
         -- // Vars
-        local Headers = self:Get("Header")
         local BaseOffset = Vector2.new(0, 2)
+        local Data = HeaderObject.Data
+        local Headers = self:Get("Header")
 
         -- // Loop through headers
-        for _, Header in ipairs(Headers) do
-            -- // Check if matches
-            if (Header == HeaderObject) then
-                break
+        local Mounts = Data.Mounts
+        local MountType = Data.Mounts[Data.Type]
+        for i = #Headers, 1, -1 do
+            -- // Makes sure header type matches - otherweise remove
+            if (Mounts[Headers[i].Type] ~= MountType) then
+                table.remove(Headers, i)
             end
-
-            -- // Add bounds
-            local YTextBounds = Header.Objects.Main.TextBounds * Vector2.yAxis
-            BaseOffset = BaseOffset + YTextBounds
         end
 
+        -- // Get i
+        local i = table.find(Headers, HeaderObject)
+        if (not i) then
+            return BaseOffset
+        end
+
+        -- // Workout out the offset (supports many headers)
+        local Offset = BaseOffset + HeaderObject.Objects.Main.TextBounds * Vector2.yAxis * i
+
         -- // Return
-        return BaseOffset
+        return Offset
     end
 
     -- // Gets the name of the object
@@ -240,6 +267,11 @@ PlayerManager.__type = "PlayerManager"
 do
     -- // Constructor
     function PlayerManager.new(Player, NoInsert)
+        -- // Defaults and check object type
+        NoInsert = NoInsert or false
+        assert(typeof(Player) == "Instance" and Player:IsA("Player"), "invalid type for Player (expecting Player)")
+        assert(typeof(NoInsert) == "boolean", "invalid type for NoInsert (expecting boolean)")
+
         -- // Create the object
         local self = setmetatable({}, PlayerManager)
 
@@ -304,6 +336,7 @@ do
 
     -- // Ran whenever a new player (not LocalPlayer) is added
     function PlayersManager:OnPlayerAdded(Player)
+        assert(typeof(Player) == "Instance" and Player:IsA("Player"), "invalid type for Player (expecting Player)")
         table.insert(self.Managers, PlayerManager.new(Player))
     end
 

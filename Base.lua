@@ -38,6 +38,7 @@ do
 	-- Convert from linear RGB to scaled CIELUV
 
     function CIELUV.RgbToLuv13(c)
+        assert(typeof(c) == "Color3", "invalid type for c (expected Color3)")
         local r, g, b = c.r, c.g, c.b
         -- Apply inverse gamma correction
 		r = r < 0.0404482362771076 and r/12.92 or 0.87941546140213*(r + 0.055)^2.4
@@ -56,6 +57,10 @@ do
     end
 
     function CIELUV.Lerp(t, c0, c1)
+        assert(typeof(t) == "number", "invalid type for t (expected number)")
+        assert(typeof(c0) == "Color3", "invalid type for c0 (expected Color3)")
+        assert(typeof(c1) == "Color3", "invalid type for c1 (expected Color3)")
+
 		local l0, u0, v0 = CIELUV.RgbToLuv13(c0)
 		local l1, u1, v1 = CIELUV.RgbToLuv13(c1)
 
@@ -106,6 +111,11 @@ do
 
     -- // Applies operation to Vector2
     function Utilities.ApplyVector2(Vector, f)
+        -- // Asserts
+        assert(typeof(Vector) == "Vector2", "invalid type for Vector (expected Vector2)")
+        assert(typeof(f) == "function", "invalid type for f (expected function)")
+
+        -- // Returns
         return Vector2.new(f(Vector.X), f(Vector.Y))
     end
 
@@ -134,6 +144,9 @@ do
 
     -- // Deep copying
     function Utilities.DeepCopy(Original)
+        -- // Assert
+        assert(typeof(Original) == "table", "invalid type for Original (expected table)")
+
         -- // Vars
         local Copy = {}
 
@@ -158,9 +171,11 @@ do
     -- // Converts Vector3 to Vector2
     function Utilities.ConvertV3toV2(Vector)
         -- // Convert if vector 3
-        if (typeof(Vector) == "Vector3") then
+        local VectorType = typeof(Vector)
+        if (VectorType == "Vector3") then
             return Vector2.new(Vector.X, Vector.Y)
         end
+        assert(VectorType == "table", "invalid type for Vector (expected Vector3 or table)")
 
         -- // Loop through all vectors
         local Vectors = {}
@@ -174,6 +189,10 @@ do
 
     -- // Gets the corners of a part (or bounding box)
     function Utilities.CalculateCorners(PartCFrame, PartSize)
+        -- // Asserts
+        assert(typeof(PartCFrame) == "CFrame", "invalid type for PartCFrame (expected CFrame)")
+        assert(typeof(PartSize) == "Vector3", "invalid type for PartSize (expected Vector3)")
+
         -- // Vars
         local HalfSize = PartSize / 2
         local Corners = table.create(#Vertices)
@@ -216,6 +235,10 @@ do
 
     -- // Rotates a vector2
     function Utilities.RotateVector2(Vector, Angle)
+        -- // Asserts
+        assert(typeof(Vector) == "Vector2", "invalid type for Vector (expected Vector2)")
+        assert(typeof(Angle) == "number", "invalid type for Angle (expected number)")
+
         -- // Calculate the trig values
         local CosValue = math.cos(Angle)
         local SinValue = math.sin(Angle)
@@ -230,6 +253,9 @@ do
     -- // Sets a drawing object's properties
     Utilities.IgnoredDrawingProperties = {"Type", "SubType"}
     function Utilities.SetDrawingProperties(Object, Properties)
+        -- // Assets
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
+
         -- // Set properties
         for Property, Value in pairs(Properties) do
             -- // Ignore if property is type
@@ -247,6 +273,9 @@ do
 
     -- // Creates a new drawing object
     function Utilities.CreateDrawing(Properties)
+        -- // Assets
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
+
         -- // Create the object
         local Object = getgenv()[Properties.Type].new()
 
@@ -262,6 +291,12 @@ Base.__type = "Base"
 do
     -- // Constructor
     function Base.new(Data, Properties)
+        -- // Asserts and defaults
+        Data = Data or {}
+        Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
+
         -- // Create the object
         local self = setmetatable({}, Base)
 
@@ -274,6 +309,11 @@ do
 
     -- // Initialises the objects by using the properties
     function Base:InitialiseObjects(Data, Properties)
+        -- // Asserts
+        Data = Data or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
+
         -- // Vars
         local Objects = {}
 
@@ -294,8 +334,9 @@ do
 
     -- // Destroys all of the objects
     function Base:Destroy(TableObject)
-        -- // Default
+        -- // Asserts and Default
         TableObject = TableObject or self.Objects
+        assert(typeof(TableObject) == "table", "invalid type for TableObject (expected table)")
 
         -- // Loop through
         for i, Object in pairs(TableObject) do
@@ -313,6 +354,9 @@ do
 
     -- // Updates the properties of properties (assumes only main and outline)
     function Base:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local IsVisible = self.Data.Enabled
 
@@ -366,9 +410,11 @@ do
 
     -- // Constructor
     function BoxSquare.new(Data, Properties)
-        -- // Default values
+        -- // Default values and assert
         Data = Data or {}
         Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
         local self = setmetatable({}, BoxSquare)
@@ -386,6 +432,9 @@ do
 
     -- // Updates the properties
     function BoxSquare:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
@@ -435,9 +484,11 @@ do
 
     -- // Constructor
     function Tracer.new(Data, Properties)
-        -- // Default values
+        -- // Default values and assert
         Data = Data or {}
         Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
         local self = setmetatable({}, Tracer)
@@ -455,6 +506,9 @@ do
 
     -- // Updates the properties
     function Tracer:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
@@ -491,13 +545,24 @@ do
         Enabled = true,
         OutlineEnabled = true,
 
-        Type = "Name", -- // Options: Name, Distance, Weapon
+        Type = "Name", -- // Options: Name, Distance, Weapon, MiscTop, MiscBottom
         Value = "N/A", -- // Name -> "PLAYERNAME", Distance -> 12.0, Weapon -> "AK-47"
 
         Formats = {
             Name = "%s",
             Weapon = "%s",
             Distance = "%0.1f studs",
+            MiscTop = "%s",
+            MiscBottom = "%s"
+        },
+
+        Mounts = {
+            Name = "Top",
+            MiscTop = "Top",
+
+            Distance = "Bottom",
+            Weapon = "Bottom",
+            MiscBottom = "Bottom"
         },
 
         --[[
@@ -536,9 +601,11 @@ do
 
     -- // Constructor
     function Header.new(Data, Properties)
-        -- // Default values
+        -- // Default values and assert
         Data = Data or {}
         Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
         local self = setmetatable({}, Header)
@@ -556,6 +623,9 @@ do
 
     -- // Calculates the position
     function Header:GetPosition(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Vars
         local Data = self.Data
         local Type = Data.Type
@@ -564,13 +634,14 @@ do
         -- // Grab the offset
         local Offset = typeof(Data.Offset) == "function" and Data.Offset(self) or Data.Offset
 
-        -- // Name
-        if (Type == "Name") then
+        -- // Name (mount to the top)
+        local MountType = Data.Mounts[Type]
+        if (MountType == "Top") then
             return ((Corners.TopLeft + Corners.TopRight) / 2) - (MainObject.TextBounds * Vector2.yAxis) - Offset
         end
 
-        -- // Distance
-        if (Type == "Distance" or Type == "Weapon") then
+        -- // Distance (mount to bottom)
+        if (MountType == "Bottom") then
             return ((Corners.BottomLeft + Corners.BottomRight) / 2) + Offset
         end
 
@@ -580,6 +651,9 @@ do
 
     -- // Updates the properties
     function Header:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
@@ -652,9 +726,11 @@ do
 
     -- // Constructor
     function Healthbar.new(Data, Properties)
-        -- // Default values
+        -- // Default values and assert
         Data = Data or {}
         Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
         local self = setmetatable({}, Healthbar)
@@ -672,6 +748,9 @@ do
 
     -- // Updates the properties
     function Healthbar:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
@@ -748,9 +827,11 @@ do
 
     -- // Constructor
     function OffArrow.new(Data, Properties)
-        -- // Default values
+        -- // Default values and assert
         Data = Data or {}
         Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
         local self = setmetatable({}, OffArrow)
@@ -768,8 +849,10 @@ do
 
     -- // Calulcates direction
     function OffArrow:Direction(Destination, Origin)
-        -- // Default
+        -- // Default and assert
         Origin = Origin or Utilities.GetCurrentCamera().CFrame
+        assert(typeof(Destination) == "Vector3", "invalid type for Destination (expected Vector3)")
+        assert(typeof(Origin) == "CFrame", "invalid type for Origin (expected CFrame)")
 
         -- // Maths in order to get the angle
         local _, Yaw, Roll = Origin:ToOrientation()
@@ -783,6 +866,9 @@ do
 
     -- // Updates the properties
     function OffArrow:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
@@ -843,9 +929,11 @@ do
 
     -- // Constructor
     function Box3D.new(Data, Properties)
-        -- // Default values
+        -- // Default values and assert
         Data = Data or {}
         Properties = Properties or {}
+        assert(typeof(Data) == "table", "invalid type for Data (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
         local self = setmetatable({}, Box3D)
@@ -863,6 +951,9 @@ do
 
     -- // Updates the properties
     function Box3D:Update(Corners)
+        -- // Asserts
+        assert(typeof(Corners) == "table", "invalid type for Corners (expected table)")
+
         -- // Check for visibility
         local Data = self.Data
         local Properties = Utilities.DeepCopy(self.Properties)
