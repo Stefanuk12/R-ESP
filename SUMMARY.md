@@ -58,6 +58,7 @@
   * [Add](managers/instanceobject/add.md)
   * [Render](managers/instanceobject/render.md)
   * [Destroy](managers/instanceobject/destroy.md)
+  * [HeaderOffset](managers/instanceobject/headeroffset.md)
   * [Name](managers/instanceobject/name.md)
   * [Weapon](managers/instanceobject/weapon.md)
   * [Health](managers/instanceobject/health.md)

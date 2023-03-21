@@ -8,5 +8,5 @@ description: Ideas and things I need to do
 * [x] Initial bug fix and testing
 * [x] Documentation
 * [ ] Example
-* [ ] Types and failsafe checks
-* [ ] Support many headers at once
+* [x] Types and failsafe checks
+* [x] Support many headers at once
