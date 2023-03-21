@@ -270,7 +270,9 @@ do
     -- // Constructor
     function PlayerManager.new(Player, NoInsert)
         -- // Defaults and check object type
-        NoInsert = NoInsert or false
+        if (NoInsert == nil) then
+            NoInsert = true -- // Default to true as otherwise Render will be called twice
+        end
         assert(typeof(Player) == "Instance" and Player:IsA("Player"), "invalid type for Player (expecting Player)")
         assert(typeof(NoInsert) == "boolean", "invalid type for NoInsert (expecting boolean)")
 
@@ -293,6 +295,11 @@ do
     -- // Gets the character
     function PlayerManager:Character()
         return self.Player.Character
+    end
+
+    -- // "Inherit" the InstanceObject add function
+    function PlayerManager:Add(...)
+        return self.InstanceObject:Add(...)
     end
 
     -- // Renders
@@ -334,6 +341,20 @@ do
 
         -- // Return the object
         return self
+    end
+
+    -- // "Inherit" the InstanceObject add function (but done iteratively)
+    function PlayersManager:Add(...)
+        -- // Vars
+        local Returns = {}
+
+        -- // Loop through each manager and call
+        for _, Manager in ipairs(self.Managers) do
+            table.insert(Returns, Manager:Add(...))
+        end
+
+        -- // Return
+        return Returns
     end
 
     -- // Ran whenever a new player (not LocalPlayer) is added
