@@ -4,9 +4,5 @@ description: Ideas and things I need to do
 
 # 📜 To Do
 
-* [x] Make it easier to initialise `Base` objects in `PlayerManager`
-* [x] Initial bug fix and testing
-* [x] Documentation
+* [ ] Have the ability to automatically add objects based upon defaults, etc.
 * [ ] Example
-* [x] Types and failsafe checks
-* [x] Support many headers at once
