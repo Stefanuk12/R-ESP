@@ -12,7 +12,14 @@
 ]]
 
 -- // Dependencies
-local Base = RESP_BASE or loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/Base.lua"))()
+local Base = RESP_BASE
+if (not Base) then
+    if (TextDynamic) then
+        Base = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/Base.lua"))()
+    else
+        Base = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/R-ESP/master/BaseV2.lua"))()
+    end
+end
 
 -- // Services
 local Players = game:GetService("Players")
@@ -21,6 +28,20 @@ local RunService = game:GetService("RunService")
 -- // Vars
 local LocalPlayer = Players.LocalPlayer
 local InstanceObjects = {}
+
+-- // Custom getboundingbox function
+getboundingbox = getboundingbox or function(objects)
+    -- // Only consider the first object
+    local Object = objects[1]
+
+    -- // Check if is a model
+    if (Object:IsA("Model")) then
+        return Object:GetBoundingBox()
+    end
+
+    -- // A Part
+    return Object.CFrame, Object.Size
+end
 
 -- // InstanceObject Class
 local InstanceObject = {}
