@@ -436,7 +436,7 @@ end)
 
 -- // Return
 local RESP_MANAGER = {
-    Base,
+    Base = Base,
     InstanceObject = InstanceObject,
     PlayerManager = PlayerManager,
     PlayersManager = PlayersManager,
