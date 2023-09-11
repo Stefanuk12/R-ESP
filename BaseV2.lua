@@ -181,6 +181,97 @@ local function worldtoscreen(points)
     return ScreenPoints
 end
 
+-- // Create a polygon based upon lines
+local Polygon = {}
+Polygon.__index = Polygon
+Polygon.__type = "Polygon"
+do
+    -- // Constructor
+    function Polygon.new(Points)
+        -- // Asserts
+        Points = Points or {}
+        assert(typeof(Points) == "table", "invalid type for Points (expected table)")
+
+        -- // Create the object
+        local self = setmetatable({
+            Lines = Polygon.Create(Points, {}),
+            Points = Points,
+            Properties = {}
+        }, Polygon)
+
+        -- // Return the object
+        return self
+    end
+
+    -- // Creates each line needed for the polygon based upon Properties and Points
+    function Polygon.Create(Points, Properties)
+        -- // Asserts
+        assert(typeof(Points) == "table", "invalid type for Points (expected table)")
+        assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
+
+        -- // Vars
+        local Lines = {}
+
+        -- // Loop through each point
+        for i = 1, #Points do
+            -- // Vars
+            Properties = Utilities.DeepCopy(Properties)
+            local Point = Points[i]
+            local NextPoint = Points[i + 1] or Points[1]
+
+            -- // Create the line
+            local Line = Drawing.new("Line")
+            Lines[i] = Line
+
+            -- // Set the properties
+            Utilities.SetDrawingProperties(Line, Utilities.CombineTables(Properties, {
+                From = Point,
+                To = NextPoint
+            }))
+        end
+
+        -- // Return
+        return Lines
+    end
+
+    -- // Destroys all of the lines
+    function Polygon:Remove()
+        -- // Loop through each line and remove it
+        for _, Line in ipairs(rawget(self, "Lines")) do
+            -- // Destroy
+            Line:Remove()
+        end
+    end
+
+    -- // Return the index property
+    function Polygon:__index(Index)
+        -- // Return the property
+        local Properties = rawget(self, "Properties")
+        return Properties[Index] or rawget(self, Index) or Polygon[Index]
+    end
+
+    -- // Set the properties for each point
+    function Polygon:__newindex(Index, Value)
+        local Properties = rawget(self, "Properties")
+
+        -- // Custom for `Points`
+        if (Index == "Points") then
+            -- // Re-initialise the lines
+            self:Destroy()
+            rawset(self, "Lines", Polygon.Create(Value, Properties))
+        end
+
+        -- // Set the property
+        Properties[Index] = Value
+
+        -- // Loop through each point
+        for _, Line in ipairs(rawget(self, "Lines")) do
+            -- // Set the property
+            Line[Index] = Value
+        end
+    end
+end
+
 -- // Utilities - continued
 do
     -- // Converts Vector3 to Vector2
@@ -294,7 +385,13 @@ do
         assert(typeof(Properties) == "table", "invalid type for Properties (expected table)")
 
         -- // Create the object
-        local Object = Drawing.new(Properties.Type)
+        local Object
+        local Type = Properties.Type
+        if (Type == "PolyLineDynamic") then
+            Object = Polygon.new()
+        else
+            Object = Drawing.new(Type)
+        end
 
         -- // Return
         return Utilities.SetDrawingProperties(Object, Properties)
@@ -590,8 +687,10 @@ do
         Main = {
             Type = "Text",
 
+            Text = "",
             Font = DefaultFont,
             Size = 13,
+            Center = true,
 
             Color = Color3.new(1, 0, 0),
             Transparency = 1,
@@ -707,8 +806,10 @@ do
         Text = {
             Type = "Text",
 
+            Text = "",
             Font = DefaultFont,
             Size = 13,
+            Center = true,
 
             Color = Color3.new(1, 0, 0),
             Transparency = 1,
@@ -777,7 +878,7 @@ do
             Text = math.round(Data.Value) .. "HP",
             Position = LerpFrom - Data.TextOffset - TextObject.TextBounds / 2,
 
-            Outlin = OutlineVisible,
+            Outline = OutlineVisible,
             Visible = IsVisible
         }))
     end
@@ -801,11 +902,9 @@ do
     }
     OffArrow.DefaultProperties = {
         Main = {
-            Type = "Triangle",
+            Type = "PolyLineDynamic",
 
             Thickness = 1,
-
-            Filled = true,
 
             Color = Color3.new(1, 0, 0),
             Transparency = 1,
@@ -879,9 +978,11 @@ do
 
         -- // Set the properties
         Utilities.SetDrawingProperties(self.Objects.Main, Utilities.CombineTables(Properties.Main, {
-            PointA = PointA,
-            PointB = PointB,
-            PointC = PointC,
+            Points = {
+                PointA,
+                PointB,
+                PointC
+            },
 
             Visible = IsVisible
         }))
@@ -899,8 +1000,8 @@ do
         Enabled = true,
         OutlineEnabled = true,
     }
-    Box3D.DefaultProperties = table.create(12, {-- // Create each edge
-        Type = "Line",
+    Box3D.DefaultProperties = table.create(4, {-- // Create each edge
+        Type = "PolyLineDynamic",
         Thickness = 1,
 
         Visible = false,
@@ -942,7 +1043,7 @@ do
         -- // Loop through each face
         local CornersArray = Utilities.ConvertV3toV2(Corners.Corners)
         local PointArray = {1, 5, 4}
-        for i = 1, 4 do
+        for i = 1, #Properties do
             -- // Create the points table
             local Points = {CornersArray[i]}
             for j = 1, 2 do
@@ -952,14 +1053,11 @@ do
             table.insert(Points, CornersArray[i == 4 and 8 or (i + PointArray[3])])
 
             -- // Set properties
-            for j = 1, #Points - 1 do
-                Utilities.SetDrawingProperties(self.Objects[j], Utilities.CombineTables(Properties[j], {
-                    From = Points[j],
-                    To = Points[j + 1],
+            Utilities.SetDrawingProperties(self.Objects[i], Utilities.CombineTables(Properties[i], {
+                Points = Points,
 
-                    Visible = IsVisible
-                }))
-            end
+                Visible = IsVisible
+            }))
         end
     end
 end
