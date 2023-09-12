@@ -27,5 +27,10 @@ Manager:Add("Header", {
     Value = "Bottom Text"
 })
 Manager:Add("Healthbar")
+Manager:Add("Healthbar", {
+    Suffix = "SH",
+    MinColour = Color3.fromRGB(255, 0, 0),
+    MaxColour = Color3.fromRGB(0, 0, 255)
+})
 Manager:Add("OffArrow")
 Manager:Add("Box3D")

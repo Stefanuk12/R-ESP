@@ -60,6 +60,7 @@ do
         local self = setmetatable({}, InstanceObject)
 
         -- // Vars
+        self.Corners = nil
         self.Instance = Object
         self.Objects = {}
 
@@ -149,6 +150,10 @@ do
             Object.Data.Offset = function()
                 return self:HeaderOffset(Object)
             end
+        elseif (Type == "Healthbar") then
+            Object.Data.Offset = function()
+                return self:HealthbarOffset(Object)
+            end
         end
 
         -- // Return it
@@ -168,6 +173,7 @@ do
 
         -- // Get corners
         local Corners = Base.Utilities.CalculateCorners(PartCFrame, PartSize)
+        self.Corners = Corners
 
         -- // Update each object
         for _, Object in ipairs(self.Objects) do
@@ -245,6 +251,32 @@ do
         -- // Workout out the offset (supports many headers)
         for i = 1, iHeaderObject do
             BaseOffset = BaseOffset + Headers[i].Objects.Main.TextBounds * Vector2.yAxis
+        end
+
+        -- // Return
+        return BaseOffset
+    end
+
+    -- // Healthbar offset
+    function InstanceObject:HealthbarOffset(HealthbarObject)
+        -- // Assert
+        assert(typeof(HealthbarObject) == "table" and HealthbarObject.__type == "Healthbar", "invalid type for HealthbarObject (expecting Healthbar)")
+
+        -- // Vars
+        local BaseOffset = Vector2.new(2, 0)
+        local Healthbars = self:Get("Healthbar")
+
+        -- // Get i
+        local iHealthbarObject = table.find(Healthbars, HealthbarObject)
+        if (not iHealthbarObject) then
+            return BaseOffset
+        end
+
+        -- // Workout out the offset (supports many healthbars)
+        local Corners = self.Corners
+        local Width = (Corners.BottomRight - Corners.TopLeft) * Vector2.xAxis * (10 / 100)
+        for i = 1, iHealthbarObject do
+            BaseOffset = BaseOffset + Width + (Healthbars[i].Objects.Main.Thickness * Vector2.xAxis)
         end
 
         -- // Return

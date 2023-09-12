@@ -681,6 +681,8 @@ do
     Healthbar.DefaultData = {
         Enabled = true,
         OutlineEnabled = true,
+        Suffix = "HP",
+        ShowHP = true,
 
         Value = 0, -- // Current Health
         MaxValue = 100, -- // Maximum Health
@@ -759,7 +761,8 @@ do
 
         -- // Vars
         local Width = (Corners.TopLeft - Corners.BottomRight) * (Data.WidthOffset / 100) * Vector2.xAxis
-        local CombinedOffset = Width - Data.Offset
+        local Offset = typeof(Data.Offset) == "function" and Data.Offset(self) or Data.Offset
+        local CombinedOffset = Width - Offset
         local To = Corners.BottomLeft + CombinedOffset
         local From = Corners.TopLeft + CombinedOffset
 
@@ -780,11 +783,11 @@ do
 
         local TextObject = self.Objects.Text
         Utilities.SetDrawingProperties(TextObject, Utilities.CombineTables(Properties.Text, {
-            Text = math.round(Data.Value) .. "HP",
+            Text = math.round(Data.Value) .. Data.Suffix,
             Position = LerpFrom - Data.TextOffset - TextObject.TextBounds / 2,
 
             Outlined = OutlineVisible,
-            Visible = IsVisible
+            Visible = Data.ShowHP and IsVisible
         }))
     end
 end
